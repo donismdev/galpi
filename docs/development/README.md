@@ -58,6 +58,8 @@ docs/development/PROGRESS.md에서 진행중인 회차와 마지막 검증 결�
 - [작품 폴더와 데이터 계약](WORKSPACE_FORMAT.md)
 - [통합 인수 시나리오와 성능 목표](QUALITY_GATES.md)
 - [진행 기록 템플릿](PROGRESS.md)
+- [계획 변경분 CH1~CH5](PLAN_CHANGES.md) · 각 회차 카드의 ‘추가 지시 (계획 변경분)’ 절과 함께 읽는다
+- [회차별 스냅샷 규칙](../../SNAPSHOTS.md) · 앱 소스는 `snapshots/NN/`에 회차별로 따로 둔다
 
 - [01회 · 실행 뼈대와 첫 작업 화면](sessions/01-foundation.md)
 - [02회 · 작품 폴더 열기와 안전한 저장 기반](sessions/02-workspace.md)

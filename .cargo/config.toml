@@ -1,0 +1,4 @@
+# Shared Rust build cache for every snapshots/NN app (avoids recompiling all deps per snapshot).
+# Relative to this file's parent: <repo>/target
+[build]
+target-dir = "target"

@@ -1,11 +1,13 @@
 # 회차별 개발 기록
 
+앱 소스는 회차별 `snapshots/NN/` 폴더에 있다(`SNAPSHOTS.md`). 각 회차 기록의 경로는 해당 스냅샷 폴더 기준이다.
+
 이 파일은 시작 템플릿이다. 받은 시점의 구현 상태는 전 회차 미착수다. 작업 AI는 실제 실행한 결과만 갱신한다.
 
 | 회차 | 작업 | 상태 | 증거·미확인 항목 |
 |---|---|---|---|
 | 01 | 실행 뼈대와 첫 작업 화면 | 완료 (IME 실입력은 04회로) | S01.A·B·C 통과. 데스크톱 셸 실기동 캡처 2장(en·ko 재실행). 아래 01회 기록 |
-| 02 | 작품 폴더 열기와 안전한 저장 기반 | 미착수 | — |
+| 02 | 작품 폴더 열기와 안전한 저장 기반 | 완료 (일부 실기기 항목은 자동 검증만) | S02.A·B·C 자동 통과. 실제 앱에서 네이티브 폴더 선택→새 작품 생성 확인. 아래 02회 기록 |
 | 03 | 다음 화 생성과 외부 편집기 | 미착수 | — |
 | 04 | 내장 집필과 한글 입력 | 미착수 | — |
 | 05 | 외부 변경·충돌·초안 복구 | 미착수 | — |
@@ -35,6 +37,8 @@
 ---
 
 ## 01회 · 실행 뼈대와 첫 작업 화면 (2026-11-23)
+
+> 앱 소스 위치: `snapshots/01/` (스냅샷 규칙 도입 후 이동). 아래 경로·명령은 그 폴더 기준이다.
 
 - **상태** · 완료. 구현·자동 검증·데스크톱 실기동 확인 모두 통과. 한글 IME 실제 입력은 이번 화면에 입력란이 없어 04회로 넘긴다(미검증).
 - **작가가 확인할 동작**
@@ -69,3 +73,39 @@
   - 16회: 교정 후보 = WebView2 내장 spellcheck(검증 필요) vs Hunspell(ko 사전 라이선스 검토). 이번 회차엔 시험하지 않음.
   - 남은 정리: CSP가 `null`(템플릿 기본). 외부 자원을 쓰지 않으므로 02회 이후 파일 접근이 생길 때 CSP를 정하고 dev/빌드 양쪽에서 확인. 앱 아이콘은 Tauri 기본값.
   - 02회에 쓸 것: `settings.rs`의 임시 파일 → rename 패턴은 앱 설정 전용이다. 작품 파일 쓰기는 WORKSPACE_FORMAT의 쓰기 소유자·지문 규칙으로 따로 만든다. 최근 작품 경로는 같은 `settings.json`에 필드를 추가(기본값 정의)해 넣을 수 있다.
+
+---
+
+## 02회 · 작품 폴더 열기와 안전한 저장 기반 (2026-11-23)
+
+> 앱 소스 위치: `snapshots/02/` (01에서 복사해 시작). 아래 경로·명령은 그 폴더 기준이다.
+
+- **상태** · 완료. 구현·자동 검증 통과. 실제 앱에서는 폴더 선택 취소, 네이티브 폴더 선택 → 빈 폴더에 새 작품 생성 → 작품 화면까지 확인했다. 읽기 전용(두 번째 프로세스·권한)과 중단 후 재실행은 Rust 자동 테스트로만 검증했고 실제 앱 조작은 미검증이다.
+- **작가가 확인할 동작**
+  1. `npm run tauri dev` → ‘작품 폴더 선택…’ → 대화상자에서 **취소** → “폴더 선택을 취소했습니다. 바뀐 것은 없습니다.”
+  2. 빈 폴더 선택 → ‘빈 폴더입니다’ → 작품 제목 입력 → ‘새 작품 만들기’ → 상단에 제목·경로·‘작품 닫기’. 폴더에 `workspace.json`, `episodes/` 등 고정 폴더와 `.galpi/`가 생긴다.
+  3. ‘작품 닫기’ → 시작 화면의 ‘최근 작품’에서 ‘열기’ → 같은 작품(같은 작품 ID)으로 열린다.
+  4. 다른 파일이 있는 폴더 → 항목 수 안내와 확인 체크 후에만 만들기. `episodes`·`lore` 같은 이름이 이미 있는 폴더 → 겹치는 이름 목록과 ‘대신 이 새 하위 폴더에 만들기’. 원래 폴더는 건드리지 않는다.
+  5. 같은 작품을 두 번째 galpi에서 열면 ‘읽기 전용’ 배지와 이유. 더 새 형식의 작품은 읽기 전용이며 아무 파일도 바꾸지 않는다. 사라진 최근 작품은 오류와 ‘목록에서 빼기’.
+- **구현 증거**
+  - Rust 작품 코어 `src-tauri/src/workspace/`: `mod.rs`(inspect·create·open, `WorkspaceSession::read_file/write_file`, `ensure_leaf_folder`), `manifest.rs`(workspace.json·고정 폴더·init 표식), `paths.rs`(상대 경로 검증·루트 탈출 차단), `atomic.rs`(임시 파일 → 교체/새 파일 게시, 임시 파일 정리), `error.rs`(실패 코드 `WsError`, 읽기 전용 이유)
+  - 명령 `src-tauri/src/lib.rs`: `inspect_folder`, `create_workspace`, `open_workspace`, `close_workspace`, `current_workspace`, `forget_recent_workspace` (+ 01의 설정 명령). 폴더 대화상자 `tauri-plugin-dialog`, 권한 `capabilities/default.json`의 `dialog:allow-open`.
+  - 최근 작품: `src-tauri/src/settings.rs`의 `recentWorkspaces`(기기 설정, 최대 10, 경로 기준 중복 제거). 01 형식 설정 파일도 그대로 읽힌다.
+  - 화면: `src/workspace/api.ts`(Rust 계약 타입·백엔드), `WorkspaceProvider.tsx`(작품 상태, 늦은 응답 차단), `StartPanel.tsx`(시작·결정 화면), `src/App.tsx`(상단 작품 표시·닫기, 읽기 전용·복구 안내). 문구 `src/i18n/locales/{ko,en}.json`의 `workspace.*`, `errors.*`.
+  - 실제 데이터 경로: 작품 폴더 `<작품>/workspace.json`, `<작품>/.galpi/{lock,tmp/,init.json}` · 기기 설정 `%APPDATA%\dev.donism.galpi\settings.json`
+- **실행 증거** (01과 같은 PC: Windows 11 Home 26200, Node 24.12.0, rustc 1.100.0 MSVC, WebView2 157)
+  - `npm run check` 통과: 타입 검사, `check:i18n` OK, vitest **22**개(5회 반복 통과), `cargo fmt --check`, `cargo clippy --all-targets -D warnings`, cargo test **29**개.
+  - **S02.A** · `s02a_create_close_reopen_keeps_id_on_korean_space_paren_path`: `내 소설 (초고) 2026` 경로에서 생성 → 닫기 → 재열기 시 같은 작품 ID, 표시 경로에 `\?\` 없음. 실제 앱: 작가가 네이티브 대화상자로 `Documents\새 폴더`를 골라 ‘포탈 속으로’를 만들었고, 폴더에 workspace.json(schemaVersion 1)과 고정 폴더 13개, `.galpi/lock`, 최근 작품 항목이 생긴 것을 읽기만 해서 확인.
+  - **S02.B** · 초기화 중단: `s02b_interrupted_init_resumes_with_same_id_at_every_step`(표식 후/폴더 후/manifest 후 세 지점에서 멈춤 → 재시도·열기 시 같은 ID). 디버그 빌드에서는 `GALPI_FAILPOINT=init-after-marker|init-after-dirs|init-after-manifest`로 실제 프로세스를 그 지점에서 강제 종료할 수 있다(실제 앱으로는 미검증). 폴더 선택 취소: 실제 앱에서 UI Automation으로 대화상자 ‘취소’ → 취소 안내 확인 + `workspace.test.tsx`. 읽기 전용: `s02b_read_only_manifest_opens_read_only`(읽기 전용 속성). 상위 스키마: `s02b_newer_schema_opens_read_only_and_is_never_modified`(시도 전후 폴더 전체 해시 동일). 동시 열기: `s02b_same_folder_opened_twice_second_is_read_only`(Windows LockFileEx, 닫으면 다시 쓰기 가능). 남은 임시 파일 정리: `s02b_leftover_temp_files_are_cleaned_on_open`.
+  - **S02.C** · `s02c_unrelated_files_survive_create_and_need_confirmation`, `s02c_name_conflicts_are_reported_and_untouched`(확인 없는 시도·충돌 시도 전후 폴더 전체 SHA-256 동일, 제안 하위 폴더 생성 후에도 원래 항목 해시 동일), `s02c_writes_cannot_leave_the_root_or_touch_app_dir`(`../`, 드라이브 경로, `.galpi/`), `paths::junction_pointing_outside_is_refused`(실제 디렉터리 정션으로 루트 탈출 차단), `write_requires_the_version_that_was_read_and_is_idempotent`(외부 수정 후 옛 해시로 쓰기 거절·외부 문장 보존, 같은 요청 ID 재시도 1회).
+  - 화면: `src/workspace/workspace.test.tsx` 9개(빈 폴더 생성·닫기·최근, 취소, 확인 필요, 충돌·제안, 상위 스키마 읽기 전용, 이어서 완료, 재시도, **A를 늦게 응답시키고 B를 연 뒤에도 B 유지**, 사라진 최근 작품).
+- **형식/결정 변경**
+  - 작품 폴더 형식 schemaVersion 1 확정(`WORKSPACE_FORMAT.md` ‘02회에 정한 구현 규칙’ 추가). 01회엔 작품 폴더가 없었으므로 이전 작품 호환 영향 없음.
+  - 기기 설정 `settings.json`에 `recentWorkspaces` 추가(기본값 빈 목록, schemaVersion 1 유지).
+  - 새 의존성: Rust `tauri-plugin-dialog`, `uuid`, `sha2`, `time`, `dunce` · npm `@tauri-apps/plugin-dialog`.
+  - 개발 저장소 구조: 회차별 스냅샷(`SNAPSHOTS.md`), Rust 빌드 캐시 공유(`.cargo/config.toml` → 저장소 루트 `target/`).
+  - 계획 변경분 CH1~CH5를 `PLAN_CHANGES.md`와 각 회차 카드·QUALITY_GATES Q12~Q16·WORKSPACE_FORMAT에 반영.
+- **다음 인계**
+  - 03회: 회차 생성은 `WorkspaceSession::write_file`(요청 ID + `Expect::Absent`)로 만들고, 위 ‘요청 ID와 재시도’ 3번대로 `episode.json`에 `requestId`를 남긴다. 화면은 `useWorkspace().current.sessionId`를 명령에 함께 보낸다.
+  - 실제 앱 미검증: 두 번째 galpi 프로세스로 같은 작품 열기(읽기 전용 배지), 폴더 권한 거부, `GALPI_FAILPOINT`로 강제 종료 후 ‘이어서 완료’. 필요한 것: 같은 PC에서 두 실행본, 권한을 바꿀 수 있는 테스트 폴더.
+  - 남은 정리: CSP는 아직 `null`(01과 같음). 작품을 2개 이상 동시에 여는 기능은 14회 창 작업 때 `AppState.workspace`를 다중 세션으로 넓힌다.

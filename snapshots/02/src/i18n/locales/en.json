@@ -1,0 +1,96 @@
+{
+  "app": {
+    "name": "galpi",
+    "tagline": "Writing workbench"
+  },
+  "language": {
+    "label": "Interface language",
+    "ko": "한국어",
+    "en": "English",
+    "saveFailed": "Could not save the language setting. It applies to this run only."
+  },
+  "nav": {
+    "label": "Work navigation",
+    "rootHint": "Documents appear here once a work is open."
+  },
+  "roots": {
+    "episodes": "Episodes",
+    "summaries": "Episode summaries",
+    "timeline": "Timeline",
+    "world": "World"
+  },
+  "rootDescriptions": {
+    "episodes": "Manuscripts in episode order. Use “Write next episode” to create a new one.",
+    "summaries": "The summary and next-episode note you left for each episode.",
+    "timeline": "Events arranged by episode order and in-story time.",
+    "world": "Cards for characters, places, factions and world rules."
+  },
+  "workspace": {
+    "none": "No work open",
+    "openTitle": "Open a work folder",
+    "openBody": "Choose a work folder to see its manuscripts, summaries, timeline and world here. Your work stays as Markdown and JSON files in that folder.",
+    "openAction": "Choose work folder…",
+    "browserOnly": "Work folders cannot be opened in the browser preview. Use the desktop app (npm run tauri dev).",
+    "busy": "Checking…",
+    "cancelled": "Folder selection cancelled. Nothing changed.",
+    "closed": "Work closed.",
+    "close": "Close work",
+    "defaultTitle": "New work",
+    "defaultTrack": "Main story",
+    "recentTitle": "Recent works",
+    "recentOpen": "Open",
+    "recentForget": "Remove from list",
+    "recentEmpty": "No works opened yet.",
+    "back": "Choose another folder",
+    "titleLabel": "Work title",
+    "folderLabel": "Folder",
+    "emptyTitle": "Empty folder",
+    "emptyBody": "A new work will be created in this folder.",
+    "create": "Create new work",
+    "nonEmptyTitle": "This folder already has other files",
+    "nonEmptyBody": "This folder already has {count} item(s). They are left as they are; only the work files and folders (workspace.json, episodes, …) are added.",
+    "nonEmptyConfirm": "Add work files to this folder without touching the existing files",
+    "conflictTitle": "Some names are already taken",
+    "conflictBody": "These items use names the work needs. To avoid overwriting them, nothing is created in this folder.",
+    "conflictSuggest": "Create it in this new subfolder instead",
+    "incompleteTitle": "Creating a work stopped part-way in this folder",
+    "incompleteBody": "Creating “{title}” stopped before it finished. It will be completed with the same work ID.",
+    "resume": "Finish creating",
+    "invalidTitle": "The work information file cannot be read",
+    "invalidBody": "workspace.json is damaged or in an unexpected format. The file was left untouched.",
+    "readOnly": "Read-only",
+    "readOnlyNewer": "This work was made by a newer galpi (format {version}). It is open read-only to protect it, and no file will be changed.",
+    "readOnlyLocked": "This work is already open for writing in another galpi window or program. It is open read-only.",
+    "readOnlyPermission": "There is no permission to write in this folder, so it is open read-only. Check the folder’s read-only attribute or permissions.",
+    "recoveredTmp": "Cleaned up {count} temporary file(s) from an interrupted save. Your files are unchanged.",
+    "recoveredInit": "Finished a work creation that had almost completed.",
+    "docsLater": "No documents yet. Creating episodes arrives in the next development step (session 03)."
+  },
+  "main": {
+    "label": "Workspace",
+    "emptyRoot": "No work is open, so there are no documents to show."
+  },
+  "status": {
+    "label": "App status",
+    "runtimeDesktop": "Desktop app",
+    "runtimeBrowser": "Browser preview (settings saved in this browser only)"
+  },
+  "errors": {
+    "notFound": "The folder cannot be found. It may have been moved or deleted.",
+    "notADirectory": "That is a file, not a folder.",
+    "nameConflicts": "Nothing was created because some names are already taken.",
+    "needsConfirmation": "Please confirm adding work files next to the existing files.",
+    "alreadyWorkspace": "This is already a work folder.",
+    "notAWorkspace": "This is not a work folder.",
+    "invalidManifest": "The work information file (workspace.json) cannot be read.",
+    "newerSchema": "This work was made by a newer galpi.",
+    "invalidRelativePath": "That path is not allowed.",
+    "pathOutsideWorkspace": "That path points outside the work folder.",
+    "staleSession": "Another work has been opened in the meantime.",
+    "noWorkspaceOpen": "No work is open.",
+    "readOnly": "This work is open read-only.",
+    "writeConflict": "The file changed elsewhere, so it was not saved.",
+    "io": "An error occurred while handling files.",
+    "unsupported": "Not available in the browser preview."
+  }
+}
