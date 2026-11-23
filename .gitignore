@@ -27,3 +27,7 @@ rustc-ice-*.txt
 node_modules/
 dist/
 *.tsbuildinfo
+*.log
+*.local
+dist-ssr/
+.claude/settings.local.json

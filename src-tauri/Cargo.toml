@@ -1,0 +1,31 @@
+[package]
+name = "galpi"
+version = "0.1.0"
+description = "galpi - local writing workbench"
+authors = ["donismdev"]
+edition = "2024"
+
+[lib]
+# The `_lib` suffix is needed so the lib name does not clash with the bin name on Windows.
+# See https://github.com/rust-lang/cargo/issues/8519
+name = "galpi_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+# https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

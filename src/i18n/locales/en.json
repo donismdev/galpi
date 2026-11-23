@@ -1,0 +1,44 @@
+{
+  "app": {
+    "name": "galpi",
+    "tagline": "Writing workbench"
+  },
+  "language": {
+    "label": "Interface language",
+    "ko": "한국어",
+    "en": "English",
+    "saveFailed": "Could not save the language setting. It applies to this run only."
+  },
+  "nav": {
+    "label": "Work navigation",
+    "rootHint": "Documents appear here once a work is open."
+  },
+  "roots": {
+    "episodes": "Episodes",
+    "summaries": "Episode summaries",
+    "timeline": "Timeline",
+    "world": "World"
+  },
+  "rootDescriptions": {
+    "episodes": "Manuscripts in episode order. Use “Write next episode” to create a new one.",
+    "summaries": "The summary and next-episode note you left for each episode.",
+    "timeline": "Events arranged by episode order and in-story time.",
+    "world": "Cards for characters, places, factions and world rules."
+  },
+  "workspace": {
+    "none": "No work open",
+    "openTitle": "Open a work folder",
+    "openBody": "Choose a work folder to see its manuscripts, summaries, timeline and world here. Your work stays as Markdown and JSON files in that folder.",
+    "openAction": "Open work folder…",
+    "notYet": "Opening a work folder is connected in the next development step (session 02). The button does nothing yet."
+  },
+  "main": {
+    "label": "Workspace",
+    "emptyRoot": "No work is open, so there are no documents to show."
+  },
+  "status": {
+    "label": "App status",
+    "runtimeDesktop": "Desktop app",
+    "runtimeBrowser": "Browser preview (settings saved in this browser only)"
+  }
+}
