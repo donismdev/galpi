@@ -11,7 +11,7 @@
 | 03 | 다음 화 생성과 외부 편집기 | 완료 | S03.A·B·C·D 통과. 실제 앱에서 VS Code(루트+원고 선택)·메모장 열기, 잘못된 편집기 경로 실패 처리 확인. 아래 03회 기록 |
 | 04 | 내장 집필과 한글 입력 | 완료 (실제 키보드 IME는 작가 확인 필요) | S04.B·C·D 실제 앱 통과. S04.A는 WebView2 IME 조합 이벤트(CDP)로 통과, 실제 키보드 한글 IME는 디버그 탭 04.ime로 확인 남음. 아래 04회 기록 |
 | 05 | 외부 변경·충돌·초안 복구 | 완료 | S05.A·B·C·D 실제 앱(debug exe) 통과. 아래 05회 기록 |
-| 06 | 회차 커밋·판 비교·복원 | 미착수 | — |
+| 06 | 회차 커밋·판 비교·복원 | 완료 | S06.A·B·C·D 실제 앱(debug exe, 실제 강제 종료 포함) 통과. 아래 06회 기록 |
 | 07 | 회차 요약·다음 화 메모·퇴고 재확인 | 미착수 | — |
 | 08 | 세계관 카드·범용 템플릿·사용자 태그 | 미착수 | — |
 | 09 | 사건 입력과 회차·작중 시간·함께 보기 | 미착수 | — |
@@ -230,3 +230,28 @@
 - **다음 인계**
   - 06회: 커밋은 `manuscript::save`와 같은 기대 해시 규칙을 쓴다. 충돌·복구 사본이 있는 회차는 커밋 전에 해결하도록 막는다(`Draft` 존재 확인). 외부 변경 직후 커밋하면 디스크를 다시 읽는다(WORKSPACE_FORMAT 쓰기와 복구 1).
   - 감시는 `episodes/`만 본다. 07회 이후 요약·설정 파일도 외부 편집을 받으려면 같은 `watch` 구조에 경로를 더한다.
+
+---
+
+## 06회 · 회차 커밋·판 비교·복원 (2026-11-24)
+
+> 앱 소스: `snapshots/06/` (05에서 복사). 실행 파일: `snapshots/06/exe/galpi-06-debug.exe` (06 디버그 탭·도구 포함, check 통과 후 마지막에 빌드).
+
+- **상태** · 완료. 구현·자동 검증·실제 앱(실제 강제 종료 2종 포함) 검증 통과.
+- **작가가 확인할 동작** · exe 디버그 탭 ‘06회 · 회차 커밋·판 비교·복원’ 체크리스트 8개(06.three, 06.nochange, 06.external, 06.crash, 06.restore, 06.separate, 06.damaged, 06.conflict). ‘06회 도구’: 판 3개 빨리 만들기 / 게시 직전 중단 흔적 / 최신 판 손상(합성 작품 전용).
+- **커밋 스키마·변경량 단위** · WORKSPACE_FORMAT ‘회차 커밋 (06회)’. 변경량: ‘바뀐 줄’ = 추가+삭제+수정 줄, 글자 = 사용자 인식 문자(Intl.Segmenter grapheme; 조합 한글·이모지 1자), 줄바꿈 제외, 비교는 BOM·CRLF/LF 무시한 LF 본문. 바뀐 줄 안은 Intl.Segmenter word 단위(단어·공백·문장부호) 강조. 앱 화면 ‘커밋과 비교 규칙’ 도움말에 같은 내용.
+- **구현 증거**
+  - Rust `src-tauri/src/workspace/history.rs`: `commit`/`commit_with`(실패 지점 BeforePublish·AfterPublish, 디버그 빌드 `GALPI_FAILPOINT=commit-before-publish|commit-after-publish`), `list`(해시 검증·문제 보고), `read`, `latest`, `backup_working_copy`. 명령 `list_revisions`, `read_revision`, `commit_episode`, `backup_working_copy`. `debug_tools.rs` `history_fixture`.
+  - 화면 `src/history/`: `diff.ts`(줄·단어 단위 비교, 문자 수), `HistoryPanel.tsx`(커밋 메모·커밋, 결과 안내, 이력 목록과 변경량, 이전 판/아무 두 판·작업본 비교, 2단계 복원), `api.ts`. 편집기 연결 `EditorGuard`의 `prepareCommit`(저장 → 디스크 대조 → 깨끗하면 다시 읽기/편집 중이면 충돌), `replaceText`, `currentText`. 문구 `history.*`.
+  - 디버그 탭: `features.ts` 06 항목, `sessionTools.tsx` 06회 도구.
+- **실행 증거** (같은 PC, `galpi-06-debug.exe`, CDP로 앱 창만 조작, 외부 저장은 node로 파일 직접 씀)
+  - `npm run check` 통과: vitest **100**(3회 반복), cargo test **68**(history 6, debug_tools tests06 1 포함), fmt·clippy.
+  - 실제 앱 18/18: r1·r2(저장 안 한 글 → 커밋 전 자동 저장)·r3, 디스크에 r001~r003 / 내용 같음 → ‘직전 판(r3)과 내용이 같아…’ 그대로 3개 / 커밋 버튼 3연타 → 정확히 1개(r4) / VS Code식 외부 저장 직후 커밋 → r5 바이트 = 디스크 / r1↔r3 비교 강조 / 커밋 안 한 문장을 쓴 뒤 r2 복원 → 사본(.galpi/backups)에 그 문장, 작업본 = r2, 커밋 → r6, r2·r3 해시 그대로 / 2화 커밋 → 1화 6개·2화 1개.
+  - **S06.B 실제 강제 종료**: `GALPI_FAILPOINT=commit-before-publish`로 실행 → 커밋 → 프로세스 abort, 디스크 이력 r001~r006 그대로·tmp에 스테이징 1개 → 일반 실행 → 이력 6개·문제 없음·스테이징 정리됨. `commit-after-publish` → abort 후 이력 r007까지 → 재실행 시 7개 모두 완전(r7 비교·복원 버튼 정상).
+  - 시험 중 고친 것: 내 테스트의 기대값 두 개(띄어쓰기는 양쪽이 같아 글자 수에 안 들어감, ‘새로 쓴 줄’은 6자)와 테스트 간 공유 데이터 수정. 앱 코드 결함은 나오지 않았다.
+  - 정리: 테스트 작품·최근 항목 삭제.
+- **형식/결정 변경** · WORKSPACE_FORMAT ‘회차 커밋 (06회)’. `.galpi/backups/` 추가(앱 내부, 백업 ZIP에서 제외 대상은 18회에 결정). 작품 schemaVersion 1 그대로.
+  - CH1: 충돌 해결 후 저장은 커밋을 만들지 않는다. ‘충돌 해결 후 커밋’ 한 번에 하는 동작은 두지 않았다(S06.D의 두 번째 조건은 해당 없음).
+- **다음 인계 (07회)**
+  - 요약의 `reviewedRevisionId`는 `history::latest`로 얻은 판 ID. ‘재확인’은 최신 판 ID가 `reviewedRevisionId`와 다를 때(새 커밋이 생겼을 때)만 — 작업본 저장·충돌 해결 저장은 판을 만들지 않으므로 상태를 바꾸지 않는다.
+  - 커밋 직후 화면 갱신: `HistoryPanel`의 `load()`. 07회 요약 패널은 같은 회차의 판 목록 변경을 듣기 위해 커밋 결과를 공유 상태로 올리는 것이 좋다.

@@ -89,6 +89,15 @@ MyNovel/
 - 복구 초안 `.galpi/drafts/<episodeId>.json`에 `baseText`(기준본 텍스트)가 더해졌다(없으면 04 초안으로 읽음). 충돌이 나면 즉시 `baseHash`·`baseText`·`text`(내 초안)를 쓰고, 고르기 전까지 원고 파일은 바꾸지 않는다. 재시작 시 `baseHash`가 디스크와 다르면 충돌을 복원한다.
 - 해결 저장은 충돌 창에 보여 준 디스크 판의 해시를 기대값으로 쓴다(파일이 없으면 ‘없어야 함’). 저장 후 다시 읽어 바이트가 다르면 동시 쓰기로 보고 새 충돌을 낸다. 해결 저장은 작업본만 갱신하며 커밋을 만들지 않는다(CH1).
 
+### 회차 커밋 (06회)
+
+- 경로: `episodes/<회차 폴더>/history/r<ordinal 3자리>/revision.json` + `manuscript.md`(커밋 순간 작업 원고의 바이트 그대로). 앱은 판을 고치거나 지우지 않는다.
+- `revision.json`: `revisionId`, `episodeId`, `parentRevisionId`(첫 판 null), `ordinal`, `createdAt`, `message`, `contentHash`(보관 바이트의 sha256), `requestId`. 모르는 필드는 보존.
+- 게시: `.galpi/tmp/<uuid>.galpi-tmpdir/`에서 두 파일을 완성 후 폴더 이름 변경 한 번. 중단되면 판이 없거나 완전한 판만 있다. 남은 스테이징은 다음 열기에서 정리.
+- 같은 `requestId` → 그 판, 작업 원고 = 최신 판 → `noChange`(쓰지 않음), 편집기가 기대한 해시와 디스크가 다르면 거절(다시 읽고 커밋), 충돌·복구 사본(`.galpi/drafts`)이 있으면 거절. 번호는 디스크의 가장 큰 번호 + 1(손상된 판 번호도 다시 쓰지 않음). 내용이 기록된 해시와 다른 판은 목록에서 빼고 경고.
+- 복원은 작업 원고만 바꾼다(일반 저장). 커밋 안 된 작업 내용이 있으면 먼저 `.galpi/backups/<episodeId>/<시각>-<id>.md`에 사본을 둔다. 다음 커밋이 새 판.
+- 최신 판 조회(07회 재확인 기준): Rust `workspace::history::latest(session, episodeId)` → `RevisionInfo { revisionId, ordinal, contentHash, … }`.
+
 ## 회차 간 추가 계약
 
 - 복선의 현재 status는 표시용 파생값이다. 등장·회수·재개는 불변 transitionId, 공개 회차, 회차 내 순서, 선택적 장면 링크를 지닌 이력으로 보존한다. 7화 등장 → 32화 회수 → 40화 재개라면 25/35/41화 기준 상태는 각각 미회수/회수/미회수다.
