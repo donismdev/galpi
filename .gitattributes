@@ -1,0 +1,19 @@
+# Every text file in this repository is UTF-8 (no BOM) with LF line endings, in the repository
+# and in the working copy, regardless of the machine's core.autocrlf setting.
+* text=auto eol=lf
+
+# Binary files: never touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.exe binary
+*.dll binary
+*.pdb binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

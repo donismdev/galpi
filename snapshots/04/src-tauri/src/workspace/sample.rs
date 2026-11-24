@@ -31,6 +31,7 @@ pub fn make_sample(dir: &Path, title: &str, count: u32) -> Result<SampleWork, Ws
         }
     };
     let session = open(dir)?;
+    mark_as_sample(&session)?;
     let mut made = Vec::new();
     for i in 0..count.min(1000) {
         made.push(episodes::create_next(&session, &format!("sample-{i}"))?.episode);
@@ -39,6 +40,39 @@ pub fn make_sample(dir: &Path, title: &str, count: u32) -> Result<SampleWork, Ws
         workspace_id,
         episodes: made,
     })
+}
+
+/// Field added to workspace.json of synthetic works. Debug tools that rewrite or lock files
+/// refuse to run on any work without it, so a real manuscript folder can never be touched by them.
+pub const SAMPLE_FLAG: &str = "galpiSample";
+
+fn mark_as_sample(session: &super::WorkspaceSession) -> Result<(), WsError> {
+    let (bytes, hash) = session.read_file(super::manifest::MANIFEST_FILE)?;
+    let mut value: serde_json::Value = serde_json::from_slice(super::manifest::strip_bom(&bytes))
+        .map_err(|e| WsError::InvalidManifest {
+        detail: e.to_string(),
+    })?;
+    value[SAMPLE_FLAG] = serde_json::Value::Bool(true);
+    let body = serde_json::to_vec_pretty(&value).map_err(std::io::Error::other)?;
+    session.write_file(
+        "sample-mark",
+        super::manifest::MANIFEST_FILE,
+        &body,
+        super::Expect::Hash(hash),
+    )?;
+    Ok(())
+}
+
+/// True only for works made by `make_sample` (workspace.json has `"galpiSample": true`).
+pub fn is_sample(session: &super::WorkspaceSession) -> bool {
+    session
+        .read_file(super::manifest::MANIFEST_FILE)
+        .ok()
+        .and_then(|(b, _)| {
+            serde_json::from_slice::<serde_json::Value>(super::manifest::strip_bom(&b)).ok()
+        })
+        .and_then(|v| v.get(SAMPLE_FLAG).and_then(|f| f.as_bool()))
+        .unwrap_or(false)
 }
 
 #[cfg(test)]
@@ -58,6 +92,18 @@ mod tests {
         assert!(make_sample(&dir, "x", 1).is_err());
         let again = open(&dir).unwrap();
         assert_eq!(again.workspace_id, s.workspace_id);
+        assert!(is_sample(&again));
+        // A normal work is never a sample.
+        let real = base.path().join("진짜 작품");
+        std::fs::create_dir_all(&real).unwrap();
+        let opts = CreateOptions {
+            title: "진짜".into(),
+            request_id: "r".into(),
+            track_label: "본편".into(),
+            confirm_non_empty: false,
+        };
+        create(&real, &opts, None).unwrap();
+        assert!(!is_sample(&open(&real).unwrap()));
         assert_eq!(episodes::list(&again).unwrap().episodes.len(), 3);
     }
 }

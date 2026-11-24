@@ -11,7 +11,7 @@
 // The exe needs no dev server; it only needs WebView2 (present on Windows 10/11).
 
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,6 +37,17 @@ const run = (cmd, args, cwd) => {
     process.exit(r.status ?? 1);
   }
 };
+
+// Snapshots with a debug tab (03+) must describe their own session before an exe is made,
+// otherwise the debug build would ship last session's checklist (this happened once in 04).
+const features = join(snap, "src", "debug", "features.ts");
+if (existsSync(features) && !readFileSync(features, "utf8").includes(`session: "${nn}"`)) {
+  console.error(
+    `snapshot ${nn}: src/debug/features.ts has no entry for session "${nn}".\n` +
+      `Add this session's implemented list, automated tests and manual checklist first (SNAPSHOTS.md rule 4).`,
+  );
+  process.exit(3);
+}
 
 if (!existsSync(join(snap, "node_modules"))) run("npm", ["ci"], snap);
 

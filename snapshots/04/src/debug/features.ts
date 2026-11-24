@@ -316,11 +316,14 @@ export const SESSIONS: SessionFeatures[] = [
       "CH1: UTF-8로 읽을 수 없는 원고(CP949 등)는 편집기 없이 안내 + ‘원본 위치 열기’(탐색기에서 파일 선택) + ‘다시 읽기’. 그 동안 자동저장·초안 쓰기 없음. 다른 프로그램이 잠근 파일은 ‘사용 중’ 안내 + ‘다시 읽기’.",
       "회차 바꾸기·작품 닫기·다른 작품 열기·창 닫기 전에 먼저 저장한다(조합이 끝나길 기다림). 창 닫기에서 저장이 실패하면 한 번 멈추고 알려준다(초안 보관됨, 한 번 더 닫으면 닫힘).",
       "기본 편집기를 ‘내장 편집기’로 두면 ‘다음 화 쓰기’가 외부 프로그램 없이 바로 내장 편집기로 간다.",
+      "디버그 탭: 빌드 정보에 ‘스냅샷 04’ 표시. ‘04회 도구’로 선택한 회차 원고를 BOM+CRLF+이모지 / CP949 / 빈 문서 / 장문 / 줄바꿈 섞임으로 덮어쓰고, 다른 프로그램처럼 잠그거나 읽기 전용으로 만들 수 있다. 합성 작품(workspace.json의 galpiSample: true)에서만 동작한다.",
     ],
     automated: [
       "cargo test workspace::manuscript  (S04.C 빈/BOM만/LF/줄바꿈 없음/CRLF/BOM+CRLF+이모지/장문/Markdown 왕복 바이트 동일, 편집 후 BOM·CRLF 유지, 섞인 줄바꿈, 디스크 변경 시 저장 거절, S04.D CP949 무변경·초안 보존, 잠긴 파일 → 다시 읽기, 초안 저장·삭제)",
       "vitest: src/manuscript/editor.test.tsx (자동저장, Ctrl+S와 새 해시, BOM·CRLF 전달, 조합 중 저장 안 함, 저장 중 입력 → 다음 세대, 실패 → 초안·다시 저장, 충돌 → 보류·자동저장 중지, CP949 → 편집기·저장·초안쓰기 없음, 잠금 → 다시 읽기, 초안 복원, 읽기 전용)",
       "실제 WebView2 IME 이벤트 재현(CDP Input.imeSetComposition/insertText)으로 확인한 기록은 PROGRESS.md 04회",
+      "cargo test debug_tools  (합성 작품에서만 형식 덮어쓰기·잠금·읽기 전용, 진짜 작품은 거절·무변경)",
+      "vitest: src/debug/debug.test.tsx (스냅샷 표시, 04회 도구 CP949·잠금 호출, 합성 작품이 아니면 비활성, 현재 스냅샷 회차가 내용에 있는지)",
     ],
     manual: [
       {
@@ -354,6 +357,7 @@ export const SESSIONS: SessionFeatures[] = [
       {
         id: "04.permission",
         title: "저장 실패와 다시 저장 (S04.B)",
+        notes: ["빠른 방법: 디버그 탭 ‘도구’에서 먼저 ‘합성 작품 만들기’로 작품을 만들어 열고, ‘회차’ 탭에서 회차를 고른 뒤 다시 디버그 탭 → ‘04회 도구’ → ‘읽기 전용 속성 켜기’ → 회차 탭에서 입력 → 다시 디버그 탭에서 ‘읽기 전용 끄기’ → ‘다시 저장’."],
         steps: [
           "탐색기에서 그 회차의 manuscript.md → 속성 → ‘읽기 전용’ 체크",
           "앱에서 몇 글자 입력 → 기다리기",
@@ -368,6 +372,7 @@ export const SESSIONS: SessionFeatures[] = [
       {
         id: "04.form",
         title: "BOM·CRLF·이모지·빈 문서·장문 무변경 (S04.C)",
+        notes: ["빠른 방법: 디버그 탭 ‘도구’에서 먼저 ‘합성 작품 만들기’로 작품을 만들어 열고, ‘회차’ 탭에서 회차를 고른 뒤 다시 디버그 탭 → ‘04회 도구’ → ‘UTF-8 BOM + CRLF + 이모지’ / ‘빈 문서’ / ‘장문’ / ‘줄바꿈 섞임’ 버튼. 아래 파일 정보(hash, bom, crlf)로 열기 전후를 비교한다(‘파일 정보 새로고침’)."],
         steps: [
           "메모장에서 원고에 이모지 🔥와 여러 줄을 쓰고 ‘다른 이름으로 저장 → 인코딩 UTF-8(BOM)’으로 저장 (메모장은 CRLF)",
           "PowerShell: Get-FileHash <원고>",
@@ -384,6 +389,7 @@ export const SESSIONS: SessionFeatures[] = [
       {
         id: "04.cp949",
         title: "CP949 원고 (S04.D)",
+        notes: ["빠른 방법: 디버그 탭 ‘도구’에서 먼저 ‘합성 작품 만들기’로 작품을 만들어 열고, ‘회차’ 탭에서 회차를 고른 뒤 다시 디버그 탭 → ‘04회 도구’ → ‘CP949(ANSI) 한글’. 파일 정보의 utf8=false, hash가 회차를 연 뒤에도 그대로인지 본다."],
         steps: [
           "메모장에서 한글 원고를 ‘다른 이름으로 저장 → 인코딩 ANSI’로 저장 (한국어 Windows에서 CP949)",
           "Get-FileHash → 앱에서 그 회차 열기 → 1분 기다리기 → Get-FileHash",
@@ -398,6 +404,7 @@ export const SESSIONS: SessionFeatures[] = [
       {
         id: "04.lock",
         title: "잠긴 원고 (S04.D)",
+        notes: ["빠른 방법: 디버그 탭 ‘도구’에서 먼저 ‘합성 작품 만들기’로 작품을 만들어 열고, ‘회차’ 탭에서 회차를 고른 뒤 다시 디버그 탭 → ‘04회 도구’ → ‘다른 프로그램처럼 잠그기’ → 회차 탭에서 확인 → ‘잠금 풀기’ → ‘다시 읽기’."],
         steps: [
           "PowerShell: $f = [IO.File]::Open('<원고 경로>', 'Open', 'ReadWrite', 'None')",
           "앱에서 그 회차 열기",

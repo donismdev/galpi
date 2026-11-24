@@ -7,7 +7,9 @@ import { I18nProvider } from "../i18n/I18nProvider";
 import type { LanguageStore } from "../settings/languageStore";
 import type { OpenedWorkspace, WorkspaceBackend } from "../workspace/api";
 import { WorkspaceProvider } from "../workspace/WorkspaceProvider";
-import type { BuildInfo, DebugBackend } from "./api";
+import type { BuildInfo, DebugBackend, FileInfo } from "./api";
+import { EpisodeBackendProvider } from "../episodes/EpisodesProvider";
+import { browserEpisodeBackend, type EpisodeBackend } from "../episodes/api";
 import { DebugBackendProvider } from "./DebugPanel";
 import { SESSIONS } from "./features";
 
@@ -61,13 +63,82 @@ async function renderApp(debug: DebugBackend, ws = wsBackend()) {
   return ws;
 }
 
+function fileInfo(over: Partial<FileInfo> = {}): FileInfo {
+  return {
+    path: "C:\\tmp\\m.md",
+    exists: true,
+    size: 0,
+    hash: "sha256:e",
+    bom: false,
+    crlf: 0,
+    loneLf: 0,
+    loneCr: 0,
+    utf8: true,
+    readonly: false,
+    lockedByDebug: false,
+    headHex: "",
+    isSample: true,
+    ...over,
+  };
+}
+
 function debugBackend(debug: boolean, over: Partial<DebugBackend> = {}): DebugBackend {
   return {
     buildInfo: async () => info(debug),
     settings: async () => ({ uiLanguage: "ko", recentWorkspaces: [] }),
     makeSample: vi.fn(async (path: string) => ({ path, workspaceId: "w9", episodes: [] })),
+    fileInfo: vi.fn(async () => fileInfo()),
+    writeFixture: vi.fn(async () => {}),
+    setLock: vi.fn(async () => {}),
+    setReadonly: vi.fn(async () => {}),
     ...over,
   };
+}
+
+/** Renders the app with a work open and one episode, then selects 1화 and opens the debug tab. */
+async function renderWithEpisode(debug: DebugBackend) {
+  const opened: OpenedWorkspace = {
+    sessionId: "s9",
+    root: "C:\\tmp\\합성",
+    workspaceId: "w9",
+    title: "합성 작품",
+    schemaVersion: 1,
+    mode: "readWrite",
+    readOnlyReason: null,
+    recovery: { tmpFilesRemoved: 0, initMarkerCleared: false },
+  };
+  const ws = { ...wsBackend(), current: async () => opened } as WorkspaceBackend;
+  const ep = {
+    episodeId: "e1",
+    number: 1,
+    title: "",
+    createdAt: "t",
+    folder: "episodes/000001-x",
+    manuscriptRel: "episodes/000001-x/manuscript.md",
+    manuscriptPath: "C:\\tmp\\합성\\episodes\\000001-x\\manuscript.md",
+  };
+  const eb = {
+    ...browserEpisodeBackend,
+    supported: true,
+    list: async () => ({ episodes: [ep], problems: [] }),
+  } as EpisodeBackend;
+  const user = userEvent.setup();
+  render(
+    <I18nProvider store={koStore}>
+      <WorkspaceProvider backend={ws}>
+        <DebugBackendProvider backend={debug}>
+          <EpisodeBackendProvider backend={eb}>
+            <EpisodesProvider>
+              <App />
+            </EpisodesProvider>
+          </EpisodeBackendProvider>
+        </DebugBackendProvider>
+      </WorkspaceProvider>
+    </I18nProvider>,
+  );
+  await user.click(await screen.findByRole("button", { name: "1화" }));
+  await user.click(await screen.findByRole("button", { name: /디버그/ }));
+  return user;
 }
 
 describe("debug tab", () => {
@@ -117,7 +188,39 @@ describe("debug tab", () => {
   });
 });
 
+describe("session 04 debug tools", () => {
+  it("shows which snapshot this build is", async () => {
+    const user = userEvent.setup();
+    await renderApp(debugBackend(true));
+    await user.click(await screen.findByRole("button", { name: /디버그/ }));
+    expect(screen.getByTestId("snapshot").textContent).toContain(`snapshots/${__SNAPSHOT__}`);
+  });
+
+  it("writes a CP949 fixture into the selected episode of a sample work", async () => {
+    const dbg = debugBackend(true);
+    const user = await renderWithEpisode(dbg);
+    await user.click(await screen.findByRole("button", { name: /CP949\(ANSI\) 한글/ }));
+    expect(dbg.writeFixture).toHaveBeenCalledWith("s9", "e1", "cp949");
+    expect(await screen.findByText(/CP949\(ANSI\) 한글 완료/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "다른 프로그램처럼 잠그기" }));
+    expect(dbg.setLock).toHaveBeenCalledWith("s9", "e1", true);
+  });
+
+  it("disables the tools on a work that is not a sample", async () => {
+    const dbg = debugBackend(true, { fileInfo: vi.fn(async () => fileInfo({ isSample: false })) });
+    await renderWithEpisode(dbg);
+    expect(await screen.findByText(/합성 작품이 아니어서/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: /CP949\(ANSI\) 한글/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(dbg.writeFixture).not.toHaveBeenCalled();
+  });
+});
+
 describe("feature data", () => {
+  it("includes this snapshot's own session (update src/debug/features.ts before closing a session)", () => {
+    expect(SESSIONS.at(-1)?.session).toBe(__SNAPSHOT__);
+    expect(SESSIONS.at(-1)?.snapshot).toBe(`snapshots/${__SNAPSHOT__}`);
+  });
+
   it("has unique step ids and complete entries", () => {
     const ids = SESSIONS.flatMap((s) => s.manual.map((m) => m.id));
     expect(new Set(ids).size).toBe(ids.length);
@@ -130,6 +233,8 @@ describe("feature data", () => {
         expect(m.expect.length).toBeGreaterThan(0);
       }
     }
-    expect(SESSIONS.map((s) => s.session)).toEqual(["01", "02", "03", "04"]);
+    // 01, 02, … up to this snapshot, in order, none missing.
+    const expected = Array.from({ length: Number(__SNAPSHOT__) }, (_, i) => String(i + 1).padStart(2, "0"));
+    expect(SESSIONS.map((s) => s.session)).toEqual(expected);
   });
 });

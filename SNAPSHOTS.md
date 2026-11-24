@@ -25,10 +25,17 @@ galpi/
    - 이 파일, `docs/development/README.md`·공통 문서·해당 회차 카드
    - `docs/development/PROGRESS.md`의 직전 회차 기록
    - `snapshots/(NN-1)`의 실제 코드
-4. **회차 종료** · `snapshots/NN`에서 앱의 **디버그 탭 내용**(`src/debug/features.ts`)에 이번 회차의 구현 목록·자동 테스트·직접 확인 절차를 추가 → `npm run check` 통과 → PROGRESS.md에 기록(경로는 `snapshots/NN/` 기준) → `NN회: …` 메시지로 커밋.
+4. **회차 종료** · 아래 순서를 지킨다. **exe는 반드시 마지막에 만든다** (04회에 디버그 탭 내용을 넣기 전에 exe를 만들어 04회 항목이 빠진 적이 있다).
+   1. `src/debug/features.ts`에 **이번 회차(NN) 항목**을 추가한다: 구현된 것 / 자동 테스트 / 직접 확인 절차(하는 법·기대 결과). 이번 회차 때문에 동작이 바뀐 **이전 회차 항목의 기대 결과도 고친다**.
+   2. 직접 확인에 특별한 파일·상태가 필요하면 `src/debug/sessionTools.tsx`에 **NN회 도구**를 추가하고, 체크리스트 `notes`에 그 도구로 하는 빠른 방법을 적는다. 파일을 바꾸는 개발용 Rust 명령은 디버그 빌드 + 합성 작품(`galpiSample: true`)에서만 동작하게 한다.
+   3. `npm run check` 통과. (`src/debug/debug.test.tsx`가 features.ts에 01…NN이 빠짐없이 있는지 검사한다 — 이번 회차 항목이 없으면 실패.)
+   4. `node tools/build-exe.mjs NN` 으로 exe를 다시 만든다. (features.ts에 `session: "NN"`이 없으면 빌드를 거부한다.) exe의 디버그 탭 ‘빌드 정보 → 스냅샷’이 NN인지 확인.
+   5. PROGRESS.md에 기록(경로는 `snapshots/NN/` 기준) → `NN회: …` 메시지로 커밋.
 5. **망친 회차** · `snapshots/NN`을 지우고 직전 폴더를 다시 복사해 처음부터 시작해도 된다. 이전 회차는 영향이 없다.
 6. **공유하는 것** · `docs/`, `prepare.md`, `tools/`, `.cargo/config.toml`, `target/`(빌드 캐시)만 공유한다. `node_modules/`와 `exe/`는 폴더마다 따로 있다(git 제외).
 7. **스냅샷별 실행 파일** · 각 스냅샷의 exe는 `node tools/build-exe.mjs NN`으로 `snapshots/NN/exe/`에 만든다. 동결된 스냅샷도 소스를 바꾸지 않고 exe만 다시 만들 수 있다.
+8. **텍스트 형식** · 저장소의 모든 텍스트 파일(문서·코드·설정, 모든 스냅샷)은 **UTF-8(BOM 없음) + LF**. `.gitattributes`(`* text=auto eol=lf`)와 `.editorconfig`, `.vscode/settings.json`이 이를 지킨다. PowerShell 5.1의 기본 인코딩(ANSI/UTF-16)으로 파일을 쓰지 않는다.
+9. **변경하면 exe도 다시** · 어떤 스냅샷이든 내용이 바뀌면(저장소 전체 설정·인코딩 정리 포함) 그 스냅샷의 `npm run check`를 돌리고 `node tools/build-exe.mjs NN`으로 exe를 **따로 요청이 없어도** 다시 만든 뒤, exe 디버그 탭의 스냅샷 번호와 회차 내용을 확인한다.
 
 ## 명령 (PowerShell, 저장소 루트에서)
 
@@ -69,7 +76,9 @@ node tools/build-exe.mjs 03 release
 ## 디버그 탭 (03회부터)
 
 - 디버그 빌드(`npm run tauri dev`, `npm run tauri build -- --debug`)에서만 왼쪽 루트 목록의 **세계관 아래**에 **디버그** 탭이 보인다. 릴리스 빌드에서는 숨는다(Rust `debug_assertions` 기준).
-- 내용: 빌드 정보 · 현재 상태(열린 작품, 기기 설정 JSON) · 개발 도구(합성 작품 만들기 등) · 회차별 **구현된 것 / 자동 테스트 / 직접 확인 절차**(체크 상태는 그 PC에만 저장).
+- 내용: 빌드 정보(**이 exe가 어느 스냅샷인지** 표시) · 현재 상태(열린 작품, 기기 설정 JSON) · 도구(합성 작품 만들기 + **회차별 도구**) · 회차별 **구현된 것 / 자동 테스트 / 직접 확인 절차**(체크 상태는 그 PC에만 저장).
+- 파일 위치: 회차 내용 `src/debug/features.ts`, 회차별 도구 `src/debug/sessionTools.tsx`, 패널 `src/debug/DebugPanel.tsx`, 스냅샷 번호는 `vite.config.ts`의 `__SNAPSHOT__`(폴더 이름).
+- 합성 작품: ‘합성 작품 만들기’로 만든 작품은 `workspace.json`에 `"galpiSample": true`가 붙는다. 원고를 덮어쓰거나 잠그는 도구는 이 표시가 있는 작품에서만 동작한다(진짜 원고 보호).
 - 새 개발 도구는 이 탭에 추가한다. Rust 쪽 개발 전용 명령은 `cfg!(debug_assertions)`가 아니면 거절하게 만든다.
 
 ## 주의

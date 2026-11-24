@@ -188,3 +188,20 @@
 - **다음 인계**
   - 05회: 충돌은 지금 `writeConflict` → ‘저장 보류’ + 초안 보관까지만 한다. ManuscriptEditor의 `meta.hash`(읽은 기준본 해시), 초안(`Draft.baseHash`, `text`), 디스크 재읽기(`read_manuscript`)로 ‘읽은 기준본 / 내 초안 / 디스크’ 세 가지를 만들 수 있다. 외부 변경 감지(파일 감시)는 아직 없다. 앱이 원고를 연 채 외부에서 바꾸면 다음 저장 때에야 안다.
   - 창 닫기는 저장 실패 시 한 번 멈춘다. 05회 충돌 창에서 강제 종료되는 경우(S05.B)는 초안 파일로 복구 경로를 잇는다.
+
+### 04회 추가 · 디버그 탭 누락 수정과 회차별 도구 (2026-11-24)
+
+- **문제** · 처음 만든 `galpi-04-debug.exe`는 디버그 탭에 04회 항목을 넣기 **전에** 빌드되어 01~03만 보였다.
+- **고친 것**
+  - exe를 다시 만들었다(`snapshots/04/exe/galpi-04-debug.exe`, 13.9 MB). 디버그 탭 ‘빌드 정보’에 **스냅샷 04** 표시(`vite.config.ts`의 `__SNAPSHOT__` = 폴더 이름).
+  - 재발 방지: `src/debug/debug.test.tsx`가 features.ts에 01…현재 스냅샷 회차가 빠짐없이 있는지 검사(`npm run check` 실패). `tools/build-exe.mjs`는 features.ts에 그 회차 항목이 없으면 빌드를 거부한다.
+  - **04회 도구**(`src/debug/sessionTools.tsx`, Rust `src-tauri/src/debug_tools.rs`): 선택한 회차 원고를 BOM+CRLF+이모지 / CP949 / 빈 문서 / 장문 / 줄바꿈 섞임으로 덮어쓰기, 다른 프로그램처럼 잠그기·풀기, 읽기 전용 속성 켜기·끄기, 파일 정보(크기·해시·BOM·CRLF 수·UTF-8 여부·앞 24바이트). 디버그 빌드 + 합성 작품(`workspace.json`의 `"galpiSample": true`, 합성 작품 만들기가 붙임)에서만 동작하고 진짜 작품은 Rust에서 거절한다.
+  - 04회 체크리스트(04.form, 04.cp949, 04.lock, 04.permission)에 도구로 하는 빠른 방법을 적었다.
+- **실행 증거** · `npm run check` 통과: vitest **50**, cargo test **53**(`debug_tools`: 합성 작품에서만 동작·진짜 작품 무변경, `sample`: galpiSample 표시), fmt·clippy. 다시 만든 exe를 실행해 CDP로 확인: 디버그 탭 ‘snapshots/04 (04회 결과물)’, ‘04회 · 내장 집필과 한글 입력’, ‘04회 도구’ 표시 → 합성 작품 만들기 → 열기 → 1화 선택 → CP949 덮어쓰기 → 파일이 CP949 23바이트, 편집기에 ‘UTF-8로 읽을 수 없습니다’, workspace.json `galpiSample: true`. 테스트 폴더·최근 항목 삭제.
+- **규칙 문서** · `SNAPSHOTS.md` 4번을 회차 종료 순서(디버그 내용 → 회차별 도구 → check → **마지막에 exe** → 기록·커밋)로 다시 썼고, `docs/development/README.md`와 05~18회 카드의 ‘회차를 닫을 때’에 같은 지시를 넣었다(14개 카드).
+
+### 저장소 전체 · 텍스트 인코딩 통일 (2026-11-24)
+
+- 01~04 스냅샷과 문서·설정 등 텍스트 파일 228개를 검사했다. 모두 이미 UTF-8이었고 BOM·UTF-16·다른 인코딩은 0개. Git `core.autocrlf=true` 때문에 작업 폴더에서 CRLF였던 17개를 LF로 바꿨다(저장소에 들어 있는 내용은 원래 LF라 01~03 동결 스냅샷의 커밋 내용은 바뀌지 않음).
+- 앞으로도 유지되도록 `.gitattributes`(`* text=auto eol=lf`, 이미지·exe는 binary), `.editorconfig`(utf-8, lf), `.vscode/settings.json`(utf8, `\n`, 인코딩 추측 끔)을 추가했다. `SNAPSHOTS.md` 8·9번에 텍스트 형식 규칙과 “바뀐 스냅샷은 요청 없이도 exe 재빌드” 규칙을 적었다.
+- 01~04 각각 `npm run check` 통과(웹 13/22/35/50, Rust 5/29/44/53). exe 4개를 다시 만들고 실행해 확인: 01 네 루트, 02 작품 폴더 선택, 03·04 디버그 탭에 해당 회차 항목과 스냅샷 번호.

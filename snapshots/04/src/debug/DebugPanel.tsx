@@ -6,6 +6,7 @@ import { asWsError } from "../workspace/api";
 import { useWorkspace } from "../workspace/WorkspaceProvider";
 import { defaultDebugBackend, type BuildInfo, type DebugBackend, type SampleResult } from "./api";
 import { SESSIONS, type TestStep } from "./features";
+import { SESSION_TOOLS } from "./sessionTools";
 
 const DebugCtx = createContext<DebugBackend | null>(null);
 
@@ -13,7 +14,7 @@ export function DebugBackendProvider({ backend, children }: { backend: DebugBack
   return <DebugCtx.Provider value={backend}>{children}</DebugCtx.Provider>;
 }
 
-function useDebugBackend(): DebugBackend {
+export function useDebugBackend(): DebugBackend {
   return useContext(DebugCtx) ?? defaultDebugBackend();
 }
 
@@ -207,6 +208,10 @@ export function DebugPanel() {
         <h2>빌드 정보</h2>
         {info ? (
           <dl className="debug-dl">
+            <dt>스냅샷</dt>
+            <dd className="mono" data-testid="snapshot">
+              snapshots/{__SNAPSHOT__} ({__SNAPSHOT__}회 결과물)
+            </dd>
             <dt>빌드</dt>
             <dd>{info.debug ? "디버그" : "릴리스"}</dd>
             <dt>실행 환경</dt>
@@ -250,6 +255,14 @@ export function DebugPanel() {
       <section className="open-card">
         <h2>도구</h2>
         {info?.runtime === "desktop" ? <SampleTool /> : <p className="muted">데스크톱 앱에서만 쓸 수 있다.</p>}
+        {SESSION_TOOLS.map(({ session, title, Component }) => (
+          <div key={session} className="debug-tool">
+            <h3>
+              {session}회 도구 · {title}
+            </h3>
+            <Component />
+          </div>
+        ))}
       </section>
 
       <section className="open-card">

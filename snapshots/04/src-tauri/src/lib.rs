@@ -1,6 +1,7 @@
 //! galpi Rust core. Owns per-device settings, the open work folder (02), episodes and
 //! external editors (03). Save, commit, watch and search build on `workspace::WorkspaceSession`.
 
+pub mod debug_tools;
 pub mod editor;
 pub mod settings;
 pub mod workspace;
@@ -375,6 +376,47 @@ fn reveal_episode_file(
 
 // ---------------------------------------------------------------- debug tab
 
+#[tauri::command]
+fn debug_file_info(
+    state: tauri::State<'_, AppState>,
+    locks: tauri::State<'_, debug_tools::DebugLocks>,
+    session_id: String,
+    episode_id: String,
+) -> Result<debug_tools::FileInfo, WsError> {
+    debug_tools::file_info(&*session(&state, &session_id)?, &episode_id, &locks)
+}
+
+#[tauri::command]
+fn debug_write_fixture(
+    state: tauri::State<'_, AppState>,
+    session_id: String,
+    episode_id: String,
+    fixture: debug_tools::Fixture,
+) -> Result<(), WsError> {
+    debug_tools::write_fixture(&*session(&state, &session_id)?, &episode_id, fixture)
+}
+
+#[tauri::command]
+fn debug_set_lock(
+    state: tauri::State<'_, AppState>,
+    locks: tauri::State<'_, debug_tools::DebugLocks>,
+    session_id: String,
+    episode_id: String,
+    on: bool,
+) -> Result<(), WsError> {
+    debug_tools::set_lock(&*session(&state, &session_id)?, &episode_id, on, &locks)
+}
+
+#[tauri::command]
+fn debug_set_readonly(
+    state: tauri::State<'_, AppState>,
+    session_id: String,
+    episode_id: String,
+    on: bool,
+) -> Result<(), WsError> {
+    debug_tools::set_readonly(&*session(&state, &session_id)?, &episode_id, on)
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct BuildInfo {
@@ -432,6 +474,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
+        .manage(debug_tools::DebugLocks::default())
         .invoke_handler(tauri::generate_handler![
             get_app_settings,
             set_ui_language,
@@ -454,7 +497,11 @@ pub fn run() {
             save_draft,
             load_draft,
             discard_draft,
-            reveal_episode_file
+            reveal_episode_file,
+            debug_file_info,
+            debug_write_fixture,
+            debug_set_lock,
+            debug_set_readonly
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
