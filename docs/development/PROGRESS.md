@@ -9,7 +9,7 @@
 | 01 | 실행 뼈대와 첫 작업 화면 | 완료 (IME 실입력은 04회로) | S01.A·B·C 통과. 데스크톱 셸 실기동 캡처 2장(en·ko 재실행). 아래 01회 기록 |
 | 02 | 작품 폴더 열기와 안전한 저장 기반 | 완료 (일부 실기기 항목은 자동 검증만) | S02.A·B·C 자동 통과. 실제 앱에서 네이티브 폴더 선택→새 작품 생성 확인. 아래 02회 기록 |
 | 03 | 다음 화 생성과 외부 편집기 | 완료 | S03.A·B·C·D 통과. 실제 앱에서 VS Code(루트+원고 선택)·메모장 열기, 잘못된 편집기 경로 실패 처리 확인. 아래 03회 기록 |
-| 04 | 내장 집필과 한글 입력 | 미착수 | — |
+| 04 | 내장 집필과 한글 입력 | 완료 (실제 키보드 IME는 작가 확인 필요) | S04.B·C·D 실제 앱 통과. S04.A는 WebView2 IME 조합 이벤트(CDP)로 통과, 실제 키보드 한글 IME는 디버그 탭 04.ime로 확인 남음. 아래 04회 기록 |
 | 05 | 외부 변경·충돌·초안 복구 | 미착수 | — |
 | 06 | 회차 커밋·판 비교·복원 | 미착수 | — |
 | 07 | 회차 요약·다음 화 메모·퇴고 재확인 | 미착수 | — |
@@ -153,3 +153,38 @@
 - **규칙 변경** · `SNAPSHOTS.md` 4번: 회차를 닫을 때 디버그 탭 내용도 갱신. 01·02 스냅샷은 동결이라 바꾸지 않았고, 그 회차들의 내용은 03의 디버그 탭에 들어 있다.
 - **스냅샷별 실행 파일 (2026-11-24)** · `tools/build-exe.mjs NN [debug|release]` 추가. 공유 컴파일 캐시(`target/`)는 그대로 두고 결과 exe만 `snapshots/NN/exe/galpi-NN-debug.exe`(또는 `galpi-NN.exe`)로 복사한다(스냅샷마다 target을 두면 1개당 수 GB). 01·02·03 디버그 exe를 만들었고(12.1/13.2/13.5 MB), `galpi-03-debug.exe`를 개발 서버 없이 실행해 네 루트·디버그 탭·03회 항목이 보이는 것을 확인했다. 동결 스냅샷은 소스 변경 없이 `exe/`(git 제외)만 생겼다.
 - **.gitignore 정리** · Rust 템플릿의 맨 `debug` 규칙이 `snapshots/03/src/debug/`(디버그 탭 소스)까지 숨기고 있어 `/debug/`로 고쳤다. exe·설치 파일, `.env*`, 작품 폴더용 `.galpi/`, 테스트 폴더 `galpi-*-test/`, OS·편집기 파일을 추가했다.
+
+---
+
+## 04회 · 내장 집필과 한글 입력 (2026-11-24)
+
+> 앱 소스 위치: `snapshots/04/` (03을 디버그 탭 포함 상태로 복사해 시작). 아래 경로·명령은 그 폴더 기준이다.
+
+- **상태** · 완료. 확정 편집기는 **CodeMirror 6**(`@codemirror/state·view·commands·lang-markdown`). 단순 텍스트 편집기로 원인을 좁혀야 할 IME 문제는 나오지 않았다. 실제 **키보드** 한글 IME 입력은 작가 확인이 남았다(아래).
+- **작가가 확인할 동작** · 디버그 탭 ‘04회’ 체크리스트 8개(04.ime, 04.save, 04.close, 04.permission, 04.form, 04.cp949, 04.lock, 04.conflict)에 단계와 기대 결과가 있다. 요약:
+  1. 회차를 누르면 아래 편집기에 원고가 열린다. 입력하면 ‘편집 중’, 1.2초 멈추면 ‘저장 중…’→‘저장됨 HH:MM:SS’, Ctrl+S는 즉시 저장.
+  2. 한글을 조합하는 동안에는 저장하지 않고 조합이 끝나면 저장한다.
+  3. 상태줄의 ‘UTF-8 (BOM) · CRLF’처럼 원래 형식을 유지한다.
+  4. 저장 실패 → ‘저장하지 못했습니다… 복구 초안으로 따로 보관’ + ‘다시 저장’. CP949 원고 → 안내·‘원본 위치 열기’·‘다시 읽기’, 자동저장 없음. 잠긴 원고 → ‘사용 중’ + ‘다시 읽기’.
+  5. 회차 바꾸기·작품 닫기·창 닫기 전에 먼저 저장한다.
+- **구현 증거**
+  - Rust `src-tauri/src/workspace/manuscript.rs`: `decode/encode`(BOM·줄바꿈 보존), `read`(`ok / undecodable / locked`), `save`(기대 해시), `save_draft / load_draft / discard_draft`, `file_path`. 명령 `read_manuscript`, `save_manuscript`(성공 시 초안 삭제), `save_draft`, `load_draft`, `discard_draft`, `reveal_episode_file`(탐색기 `/select,`). 창 닫기 권한 `core:window:allow-destroy`.
+  - 화면 `src/manuscript/ManuscriptEditor.tsx`(편집기·저장 상태·세대·IME 대기·실패/보류/판독 실패/잠금/초안), `EditorGuard.tsx`(저장 후 전환: 회차 선택, 다음 화, 작품 닫기·열기), `WindowCloseGuard.tsx`(창 닫기 전 저장), `api.ts`. `src/episodes/*`에서 내장 편집기 연결, 문구 `manuscript.*`.
+  - 디버그 탭 `src/debug/features.ts`에 04회 항목 추가, 03.builtin 기대 결과 갱신.
+- **실행 증거** (같은 PC, WebView2 157, `snapshots/04/exe/galpi-04-debug.exe`)
+  - `npm run check` 통과: vitest **46**(8회 연속), cargo test **51**, fmt·clippy.
+  - 실제 앱 · WebView2 원격 디버깅(`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`)으로 **Chromium IME 조합 이벤트**(`Input.imeSetComposition` 자모 단위 → `Input.insertText` 확정)를 앱 창에만 보냈다. 내 키보드·마우스는 쓰지 않았다.
+    - **S04.A** 천천히(60ms 간격) ‘서린은 불씨를 감지했다.’, ‘불’ 조합 중 1.6초 멈춤 + Ctrl+S → 그동안 상태 ‘편집 중’, 디스크 빈 파일 그대로 → 조합 끝난 뒤 디스크 `서린은 불씨를 감지했다.` 정확히 일치. Enter 후 지연 없이 같은 문장 → `…다.\n서린은 불씨를 감지했다.` 일치. Enter 직후 0/30/80ms에 조합을 시작해도 줄·글자 중복 없음.
+    - **S04.C** BOM+CRLF+이모지 원고를 열기만 → SHA-256 동일. 한 줄 추가 → 원본 바이트 + `서린은 불씨를 감지했다.\r\n` 과 정확히 같음(BOM 유지). 상태줄 ‘UTF-8 (BOM) · CRLF’.
+    - **S04.D** CP949 원고 → ‘UTF-8로 읽을 수 없습니다’, 편집기 없음, 2초 뒤에도 바이트 동일. 다른 프로세스가 공유 없이 연 원고 → ‘사용 중’ 안내 → 닫은 뒤 ‘다시 읽기’로 정상.
+    - **S04.B** 원고를 읽기 전용 속성으로 만든 뒤 입력 → ‘저장하지 못했습니다’, `.galpi/drafts/<회차ID>.json` 생성, 디스크 그대로 → 속성 해제 후 ‘다시 저장’ → 저장, 초안 삭제. 입력 직후 창 닫기(WM_CLOSE) → 50ms 안에 종료, 마지막 글자까지 디스크에 있음.
+    - 시험 중 알게 된 것: CDP `Input.insertText("\n")`나 rawKeyDown+char로 보낸 Enter는 줄바꿈이 둘 들어간다(시뮬레이션의 특성). 단일 keyDown Enter로는 한 줄. 실제 키보드 확인 항목에 Enter를 포함했다.
+  - **미검증** · 실제 키보드 한글 IME(Microsoft 한국어 IME)로 S04.A의 포커스 이동·한/영 전환 조합. 필요한 것: 작가가 디버그 탭 04.ime 절차를 직접 수행.
+  - 정리: 테스트 작품 `%TEMP%\galpi-04-test` 삭제, 최근 작품에서 테스트 항목 삭제.
+- **형식/결정 변경**
+  - `WORKSPACE_FORMAT.md` ‘원고 저장과 복구 초안 (04회)’: 형식 보존 규칙, `.galpi/drafts/`. 작품 schemaVersion은 1 그대로(초안은 앱 내부 파일).
+  - 기본 편집기는 여전히 VS Code. 내장 편집기는 회차 상세에서 항상 보이고, 기본을 ‘내장’으로 두면 ‘다음 화 쓰기’가 외부 프로그램 없이 내장 편집기로 간다.
+  - 스냅샷 복사 명령에서 `dist`도 제외(`SNAPSHOTS.md`).
+- **다음 인계**
+  - 05회: 충돌은 지금 `writeConflict` → ‘저장 보류’ + 초안 보관까지만 한다. ManuscriptEditor의 `meta.hash`(읽은 기준본 해시), 초안(`Draft.baseHash`, `text`), 디스크 재읽기(`read_manuscript`)로 ‘읽은 기준본 / 내 초안 / 디스크’ 세 가지를 만들 수 있다. 외부 변경 감지(파일 감시)는 아직 없다. 앱이 원고를 연 채 외부에서 바꾸면 다음 저장 때에야 안다.
+  - 창 닫기는 저장 실패 시 한 번 멈춘다. 05회 충돌 창에서 강제 종료되는 경우(S05.B)는 초안 파일로 복구 경로를 잇는다.

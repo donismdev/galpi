@@ -32,10 +32,10 @@ galpi/
 
 ## 명령 (PowerShell, 저장소 루트에서)
 
-새 회차 폴더 만들기 (예: 02 → 03). `node_modules`, `exe`, `target`은 복사하지 않는다.
+새 회차 폴더 만들기 (예: 02 → 03). `node_modules`, `exe`, `target`, `dist`는 복사하지 않는다.
 
 ```powershell
-robocopy snapshots\02 snapshots\03 /E /XD node_modules exe target /NFL /NDL /NJH /NJS
+robocopy snapshots\02 snapshots\03 /E /XD node_modules exe target dist /NFL /NDL /NJH /NJS
 ```
 
 ```powershell
