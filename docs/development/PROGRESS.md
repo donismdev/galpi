@@ -8,7 +8,7 @@
 |---|---|---|---|
 | 01 | 실행 뼈대와 첫 작업 화면 | 완료 (IME 실입력은 04회로) | S01.A·B·C 통과. 데스크톱 셸 실기동 캡처 2장(en·ko 재실행). 아래 01회 기록 |
 | 02 | 작품 폴더 열기와 안전한 저장 기반 | 완료 (일부 실기기 항목은 자동 검증만) | S02.A·B·C 자동 통과. 실제 앱에서 네이티브 폴더 선택→새 작품 생성 확인. 아래 02회 기록 |
-| 03 | 다음 화 생성과 외부 편집기 | 미착수 | — |
+| 03 | 다음 화 생성과 외부 편집기 | 완료 | S03.A·B·C·D 통과. 실제 앱에서 VS Code(루트+원고 선택)·메모장 열기, 잘못된 편집기 경로 실패 처리 확인. 아래 03회 기록 |
 | 04 | 내장 집필과 한글 입력 | 미착수 | — |
 | 05 | 외부 변경·충돌·초안 복구 | 미착수 | — |
 | 06 | 회차 커밋·판 비교·복원 | 미착수 | — |
@@ -109,3 +109,38 @@
   - 03회: 회차 생성은 `WorkspaceSession::write_file`(요청 ID + `Expect::Absent`)로 만들고, 위 ‘요청 ID와 재시도’ 3번대로 `episode.json`에 `requestId`를 남긴다. 화면은 `useWorkspace().current.sessionId`를 명령에 함께 보낸다.
   - 실제 앱 미검증: 두 번째 galpi 프로세스로 같은 작품 열기(읽기 전용 배지), 폴더 권한 거부, `GALPI_FAILPOINT`로 강제 종료 후 ‘이어서 완료’. 필요한 것: 같은 PC에서 두 실행본, 권한을 바꿀 수 있는 테스트 폴더.
   - 남은 정리: CSP는 아직 `null`(01과 같음). 작품을 2개 이상 동시에 여는 기능은 14회 창 작업 때 `AppState.workspace`를 다중 세션으로 넓힌다.
+
+---
+
+## 03회 · 다음 화 생성과 외부 편집기 (2026-11-23)
+
+> 앱 소스 위치: `snapshots/03/` (02에서 복사해 시작). 아래 경로·명령은 그 폴더 기준이다.
+
+- **상태** · 완료. 구현·자동 검증·실제 Windows 확인(VS Code, 메모장, 편집기 실패) 모두 통과.
+- **작가가 확인할 동작**
+  1. `npm run tauri dev` → 작품 열기 → 왼쪽 ‘회차’ → **다음 화 쓰기 (N화)** 한 번 → 새 회차가 만들어지고 선택되며, 기본 편집기(처음엔 VS Code)에 작품 폴더와 새 원고가 열린다. 화면에 “VS Code에 열기 요청을 보냈습니다. 편집기를 닫아도 회차 상태와 이력은 바뀌지 않습니다.”
+  2. 회차 상세에 원고 파일의 절대 경로, **VS Code(으)로 다시 열기**, **메모장(으)로 열기**. 제목을 입력하고 Enter → 목록이 “1화 · 각성”으로 바뀌고 경로·폴더는 그대로.
+  3. ‘편집기 설정’에서 기본 편집기(VS Code / 메모장 / 내장 편집기는 04회)와 VS Code 위치를 바꿀 수 있다. 위치를 틀리게 넣으면 열기 실패 이유·찾아본 위치·‘메모장(으)로 열기’가 보이고 회차는 그대로 남는다. 칸을 비우면 자동으로 다시 찾는다.
+  4. 만들기가 실패하면 “다시 누르면 같은 요청으로 이어서 시도하므로 회차가 두 개 생기지 않습니다.” 읽기 전용 작품에서는 만들기 버튼이 꺼진다.
+- **구현 증거**
+  - Rust `src-tauri/src/workspace/episodes.rs`: `list`, `create_next`(쓰기 잠금 안에서 최대 번호+1, `requestId` 재사용), `find`, `rename`. `workspace/atomic.rs`의 `publish_new_dir`(스테이징 폴더 → 이름 변경 한 번), 스테이징 정리. `WorkspaceSession::ensure_writable / writer_guard`.
+  - Rust `src-tauri/src/editor.rs`: `EditorKind`(vscode/notepad/builtin), `find_vscode`(설정 경로 → `%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe` → Program Files → PATH의 `code.cmd`), `plan`(VS Code: `[작품 루트, 원고]`, 메모장: `[원고]`), `launch`(셸 없이 실행, 기다리지 않음, `requestSent`만 반환).
+  - 명령 `src-tauri/src/lib.rs`: `list_episodes`, `create_episode`, `rename_episode`, `open_episode_external`, `detect_editors`, `set_editor_settings`. 모든 작품 명령은 `sessionId`를 확인한다(다르면 `staleSession`). 작품 세션은 `Arc`로 넘겨 긴 작업 중에도 슬롯 잠금을 오래 잡지 않는다.
+  - 기기 설정 `settings.json`의 `editor: { kind, vscodePath? }`(`%APPDATA%\dev.donism.galpi\settings.json`).
+  - 화면 `src/episodes/api.ts`, `EpisodesProvider.tsx`(만들기 의도 1개 = 요청 ID 1개, 늦은 응답 무시), `EpisodesPanel.tsx`(사이드바 회차 목록, 상세, 편집기 설정). 문구 `episodes.*`, `editor.*`, `errors.editor*`.
+  - 개발 도구 `src-tauri/examples/make_sample_work.rs`: 실제 앱 코드로 합성 작품과 빈 회차 N개를 만든다.
+- **실행 증거** (같은 PC, VS Code 1.147 사용자 설치, Windows 11 메모장)
+  - `npm run check` 통과: vitest **30**(3회 반복), cargo test **43**, fmt, clippy `-D warnings`.
+  - **S03.A** · `s03a_episodes_1_2_3_survive_reopen_in_order_with_absolute_paths`. 실제 앱: `%TEMP%\galpi-03-test\잿빛 항구 (테스트) #1 & 'x' 100%`(한글·공백·괄호·`#`·`&`·`'`·`%`)에 합성 작품 1~3화를 만들고 최근 작품에서 열었더니 사이드바 1화·2화·3화, 버튼 ‘다음 화 쓰기 (4화)’, 1화 절대 경로가 실제 파일과 같았다.
+  - **S03.B** · `s03b_same_request_retry_makes_one_episode_even_after_reopen`(재열기 후에도 같은 회차), `s03b_concurrent_independent_requests_get_distinct_consecutive_numbers`(8개 스레드 → 1~8, 같은 요청 6개 동시 → 1개), `gaps_are_kept_and_next_follows_the_maximum`, 화면 테스트(실패 후 재시도 같은 요청 ID, 더블클릭 1개). 실제 앱: VS Code 경로를 틀린 상태에서 ‘다음 화 쓰기 (4화)’ → 4화 생성·열기 실패 표시 → ‘VS Code(으)로 다시 열기’ 두 번 → 디스크의 회차 폴더 4개 그대로, 버튼은 ‘(5화)’.
+  - **S03.C** · 실제 앱에서 ‘VS Code(으)로 다시 열기’ → 새 VS Code 창 제목 `manuscript.md - 잿빛 항구 (테스트) #1 & 'x' 100% - Visual Studio Code`, 캡처에서 탐색기 루트가 작품 폴더이고 `episodes/000001-…/manuscript.md`가 선택됨(이번 VS Code는 업데이트 직후라 릴리스 노트 탭이 함께 열려 앞에 있었다). ‘메모장(으)로 열기’ → Windows 11 메모장이 **이미 열린 메모장 창의 새 탭**으로 `manuscript.md`를 열었다.
+  - **S03.D** · 테스트 VS Code 창을 닫은 전후로 `episodes/` 아래 모든 파일 해시 동일. ‘편집기 설정’에 `C:\없는 경로\Code.exe` → ‘VS Code(으)로 열지 못했습니다… 찾아본 위치: C:\없는 경로\Code.exe’와 ‘메모장(으)로 열기’ 버튼, 회차 수 불변. 칸을 비우자 자동 탐지 `…\Microsoft VS Code\Code.exe`로 돌아오고 4화가 VS Code에 열렸다. 단위 테스트 `wrong_explicit_path_fails_and_lists_it`, `spawn_failure_is_reported_not_hidden`.
+  - 정리: 테스트용 VS Code 창은 닫았고 최근 작품에서 테스트 항목을 지웠다. 메모장의 테스트 탭은 작가의 다른 탭이 있을 수 있어 닫지 않았다. 테스트 폴더 `%TEMP%\galpi-03-test`는 남아 있다.
+- **형식/결정 변경**
+  - 회차 폴더 규격 확정(`WORKSPACE_FORMAT.md` ‘회차 폴더 (03회)’). 02회 작품은 `episodes/`가 비어 있으므로 그대로 열린다.
+  - 기기 설정에 `editor` 추가(없으면 VS Code). VS Code는 `code.cmd`를 거치지 않고 `Code.exe`를 인자 목록으로 직접 실행한다(`cmd.exe` 해석으로 `%`·`&`가 깨지는 것을 피함).
+  - VS Code 탐지에서 VS Code Insiders, Cursor 등은 아직 찾지 않는다(경로를 직접 넣으면 쓸 수 있음).
+- **다음 인계**
+  - 04회: 내장 편집기는 `EditorKind::Builtin`(현재 `editorNotReady`)를 연결하면 같은 버튼·설정을 그대로 쓴다. 원고 저장은 `WorkspaceSession::write_file(requestId, episode.manuscriptRel, bytes, Expect::Hash(읽을 때 해시))`.
+  - 04회 CH1 몫(잠금 시 ‘다시 읽기’, UTF-8 판독 실패 시 자동저장 중지)과 05회 디스크 변경 판단은 아직 없다. 지금은 외부 편집기를 연 뒤 앱이 원고 내용을 읽지 않는다.
+  - Windows 11 메모장은 새 창이 아니라 기존 창의 탭으로 연다. 05회 외부 변경 시험에서 이 동작을 고려한다.
