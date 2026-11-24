@@ -144,3 +144,12 @@
   - 04회: 내장 편집기는 `EditorKind::Builtin`(현재 `editorNotReady`)를 연결하면 같은 버튼·설정을 그대로 쓴다. 원고 저장은 `WorkspaceSession::write_file(requestId, episode.manuscriptRel, bytes, Expect::Hash(읽을 때 해시))`.
   - 04회 CH1 몫(잠금 시 ‘다시 읽기’, UTF-8 판독 실패 시 자동저장 중지)과 05회 디스크 변경 판단은 아직 없다. 지금은 외부 편집기를 연 뒤 앱이 원고 내용을 읽지 않는다.
   - Windows 11 메모장은 새 창이 아니라 기존 창의 탭으로 연다. 05회 외부 변경 시험에서 이 동작을 고려한다.
+
+### 03회 추가 · 디버그 탭 (2026-11-24)
+
+- **무엇** · 디버그 빌드에서만 보이는 왼쪽 ‘세계관’ 아래의 ‘디버그’ 탭. 빌드 정보(디버그/릴리스, 버전, OS, 기기 설정 파일 경로), 현재 상태(열린 작품 JSON, 회차 수, 마지막 편집기 요청, 기기 설정 JSON), 도구(합성 작품 만들기 → 바로 열기), **01~03회 구현 목록·자동 테스트 명령·직접 확인 절차 22개**(체크 상태는 localStorage `galpi.debug.checks`).
+- **구현 증거** · `src/debug/features.ts`(회차별 내용 데이터), `src/debug/DebugPanel.tsx`, `src/debug/api.ts`, `src/App.tsx`(탭 표시 조건 `buildInfo.debug`). Rust `build_info`, `debug_make_sample_work`(릴리스 빌드에서는 거절), `src-tauri/src/workspace/sample.rs`(예제 CLI와 공용).
+- **실행 증거** · `npm run check` 통과: vitest **35**(`src/debug/debug.test.tsx`: 릴리스에서 숨김, 01~03 표시·최신 회차 펼침, 체크 저장·초기화, 합성 작품 만들기·열기, 데이터 무결성), cargo test **44**(`workspace::sample`), fmt·clippy. 실제 데스크톱: 디버그 탭 표시, 빌드 정보·기기 설정 JSON 표시, 합성 작품 만들기로 `%TEMP%\galpi-dbg-test\샘플 작품 (디버그)`에 1~3화 생성 확인 후 폴더 삭제.
+- **규칙 변경** · `SNAPSHOTS.md` 4번: 회차를 닫을 때 디버그 탭 내용도 갱신. 01·02 스냅샷은 동결이라 바꾸지 않았고, 그 회차들의 내용은 03의 디버그 탭에 들어 있다.
+- **스냅샷별 실행 파일 (2026-11-24)** · `tools/build-exe.mjs NN [debug|release]` 추가. 공유 컴파일 캐시(`target/`)는 그대로 두고 결과 exe만 `snapshots/NN/exe/galpi-NN-debug.exe`(또는 `galpi-NN.exe`)로 복사한다(스냅샷마다 target을 두면 1개당 수 GB). 01·02·03 디버그 exe를 만들었고(12.1/13.2/13.5 MB), `galpi-03-debug.exe`를 개발 서버 없이 실행해 네 루트·디버그 탭·03회 항목이 보이는 것을 확인했다. 동결 스냅샷은 소스 변경 없이 `exe/`(git 제외)만 생겼다.
+- **.gitignore 정리** · Rust 템플릿의 맨 `debug` 규칙이 `snapshots/03/src/debug/`(디버그 탭 소스)까지 숨기고 있어 `/debug/`로 고쳤다. exe·설치 파일, `.env*`, 작품 폴더용 `.galpi/`, 테스트 폴더 `galpi-*-test/`, OS·편집기 파일을 추가했다.

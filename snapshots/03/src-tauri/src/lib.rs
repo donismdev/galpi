@@ -274,6 +274,60 @@ fn set_editor_settings(
     })
 }
 
+// ---------------------------------------------------------------- debug tab
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BuildInfo {
+    /// true for `tauri dev` / `tauri build --debug` (Rust debug_assertions). The debug tab shows only then.
+    debug: bool,
+    version: String,
+    os: &'static str,
+    arch: &'static str,
+    settings_path: String,
+}
+
+#[tauri::command]
+fn build_info(app: tauri::AppHandle) -> Result<BuildInfo, WsError> {
+    Ok(BuildInfo {
+        debug: cfg!(debug_assertions),
+        version: app.package_info().version.to_string(),
+        os: std::env::consts::OS,
+        arch: std::env::consts::ARCH,
+        settings_path: settings_file(&app)?.display().to_string(),
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SampleResult {
+    path: String,
+    workspace_id: String,
+    episodes: Vec<EpisodeInfo>,
+}
+
+/// Debug builds only: makes a synthetic work (new/empty folder) with N empty episodes.
+#[tauri::command]
+fn debug_make_sample_work(
+    path: String,
+    title: String,
+    count: u32,
+) -> Result<SampleResult, WsError> {
+    if !cfg!(debug_assertions) {
+        return Err(WsError::Io {
+            kind: "Unsupported".into(),
+            detail: "debug builds only".into(),
+        });
+    }
+    let p = PathBuf::from(&path);
+    let s = workspace::sample::make_sample(&p, &title, count)?;
+    Ok(SampleResult {
+        path: workspace::display_path(&p),
+        workspace_id: s.workspace_id,
+        episodes: s.episodes,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -293,7 +347,9 @@ pub fn run() {
             rename_episode,
             open_episode_external,
             detect_editors,
-            set_editor_settings
+            set_editor_settings,
+            build_info,
+            debug_make_sample_work
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -17,6 +17,7 @@
 | 화면 쪽만 | `npm run check:web` (타입 검사 · ko/en 키 검사 · 단위 테스트) |
 | Rust 쪽만 | `npm run check:rust` (fmt · clippy · test) |
 | 설치 파일 빌드 | `npm run tauri build` |
+| 디버그 탭 | 디버그 빌드에서 왼쪽 ‘세계관’ 아래 ‘디버그’ — 회차별 구현 목록·테스트 절차·도구 (`src/debug/`) |
 | 테스트용 합성 작품 만들기 | `cargo run --manifest-path src-tauri/Cargo.toml --example make_sample_work -- "<빈 폴더>" [제목] [회차 수]` |
 
 ## 구조

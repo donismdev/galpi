@@ -127,5 +127,8 @@
     "failed": "{editor}(으)로 열지 못했습니다.",
     "reopen": "{editor}(으)로 다시 열기",
     "openWithOther": "{editor}(으)로 열기"
+  },
+  "debug": {
+    "tab": "디버그"
   }
 }

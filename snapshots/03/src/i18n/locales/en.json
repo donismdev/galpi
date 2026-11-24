@@ -127,5 +127,8 @@
     "failed": "Could not open in {editor}.",
     "reopen": "Open again in {editor}",
     "openWithOther": "Open in {editor}"
+  },
+  "debug": {
+    "tab": "Debug"
   }
 }

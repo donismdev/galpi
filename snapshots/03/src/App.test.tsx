@@ -47,6 +47,7 @@ function rootLabels() {
   const nav = screen.getByRole("navigation");
   return within(nav)
     .getAllByRole("button")
+    .filter((b) => !b.classList.contains("debug-tab"))
     .map((b) => b.textContent?.replace(/^[^\p{L}]+/u, "").trim());
 }
 

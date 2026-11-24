@@ -6,6 +6,7 @@ pub mod episodes;
 pub mod error;
 pub mod manifest;
 pub mod paths;
+pub mod sample;
 
 use error::{ReadOnlyReason, WsError};
 use manifest::{

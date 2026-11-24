@@ -462,3 +462,106 @@ button.big {
 .editor-settings .field {
   margin: 10px 0;
 }
+
+/* ---- debug tab ---- */
+.debug-tab {
+  color: var(--muted);
+}
+
+.debug {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.debug-json {
+  margin: 0 0 12px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.debug-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.debug-dl dt {
+  color: var(--muted);
+}
+
+.debug-dl dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.debug-sub {
+  margin: 12px 0 4px !important;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.debug-session {
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.debug-session summary {
+  cursor: pointer;
+}
+
+.debug-steps {
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.debug-step {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+}
+
+.debug-step.done {
+  opacity: 0.6;
+}
+
+.debug-step .check {
+  margin: 0;
+  align-items: center;
+}
+
+.debug-step-body ol,
+.debug-step-body ul {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.debug-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.debug-row input {
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  max-width: 220px;
+}

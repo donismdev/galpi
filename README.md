@@ -13,4 +13,4 @@
 | [snapshots/02](snapshots/02) | 02 · 작품 폴더 열기와 안전한 저장 기반 | 동결 |
 | [snapshots/03](snapshots/03) | 03 · 다음 화 생성과 외부 편집기 | 진행 |
 
-각 스냅샷 폴더의 `README.md`에 명령과 구조가 있다.
+각 스냅샷 폴더의 `README.md`에 명령과 구조가 있다. 스냅샷별 실행 파일은 `node tools/build-exe.mjs NN` → `snapshots/NN/exe/galpi-NN-debug.exe` (자세히는 SNAPSHOTS.md).

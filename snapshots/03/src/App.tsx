@@ -5,6 +5,7 @@ import { StartPanel, NoticeLine } from "./workspace/StartPanel";
 import { useWorkspace } from "./workspace/WorkspaceProvider";
 import { EpisodeNav, EpisodesPanel } from "./episodes/EpisodesPanel";
 import type { OpenedWorkspace } from "./workspace/api";
+import { DebugPanel, useBuildInfo } from "./debug/DebugPanel";
 import "./App.css";
 
 export const ROOTS = ["episodes", "summaries", "timeline", "world"] as const;
@@ -21,7 +22,9 @@ export default function App() {
   const { t, language, setLanguage, saveError, runtime } = useI18n();
   const ws = useWorkspace();
   const work = ws.current;
-  const [selected, setSelected] = useState<RootId>("episodes");
+  const [selected, setSelected] = useState<RootId | "debug">("episodes");
+  const build = useBuildInfo();
+  const showDebug = build?.debug === true;
   const langSelectId = useId();
 
   return (
@@ -49,6 +52,21 @@ export default function App() {
                 {root === "episodes" && work && <EpisodeNav onPick={() => setSelected("episodes")} />}
               </li>
             ))}
+            {showDebug && (
+              <li>
+                <button
+                  type="button"
+                  className="root debug-tab"
+                  aria-current={selected === "debug" ? "page" : undefined}
+                  onClick={() => setSelected("debug")}
+                >
+                  <span className="root-icon" aria-hidden="true">
+                    ⚙
+                  </span>
+                  <span>{t("debug.tab")}</span>
+                </button>
+              </li>
+            )}
           </ul>
         </nav>
         <p className="sidebar-hint">{t("nav.rootHint")}</p>
@@ -89,7 +107,9 @@ export default function App() {
         </header>
 
         <main className="main" aria-label={t("main.label")}>
-          {work ? (
+          {selected === "debug" && showDebug ? (
+            <DebugPanel />
+          ) : selected === "debug" ? null : work ? (
             <>
               <NoticeLine notice={ws.notice} />
               <WorkBanners work={work} />
