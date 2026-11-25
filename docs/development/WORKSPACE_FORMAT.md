@@ -118,6 +118,16 @@ MyNovel/
 - 태그: `tags/<tagId>.json` = `{ tagId, label }`. 이름 변경은 `label`만 바꾼다. 카드에서 제거 = 그 카드의 `tagIds`만 수정. 전역 정리 = 모든 카드에서 떼고 태그 파일 삭제(UI가 영향 카드 수를 먼저 보여주고 확인받음).
 - ‘보기에서 숨기기’는 작품 파일에 쓰지 않는다(이 PC의 보기 설정, 작품 ID별 localStorage `galpi.world.hiddenTags.<workspaceId>`).
 
+### 타임라인·사건·작중 트랙 (09회)
+
+- 타임라인: `timelines/collections/<collectionId>.json` = `schemaVersion`(1), `collectionId`, `name`, `defaultMode`(`episode` / `story` / `both`), `createdAt`, `requestId`. 이름·기본 보기 변경은 읽을 때의 해시로 교체.
+- 사건: `timelines/events/<eventId>.json` = `schemaVersion`(1), `eventId`, `collectionIds`(1개 이상, 올린 타임라인 전부), `title`, `detail`, `tagIds`(08 태그), `relatedCardIds`(08 카드 ID), `episodeId?`, `episodeOrder?`, `storyCertainty`(`confirmed` / `estimated` / `unknown`), `storyTrackId?`, `storyOrder?`, `storyLabel?`, `reviewedRevisionId?`, `reviewedAt?`, `createdAt`, `requestId`. 모르는 필드는 보존. 사건 하나는 파일 하나라 어느 타임라인에서 고쳐도 모두에 반영된다.
+- 좌표 규칙: 회차 좌표(`episodeId`)와 작중 좌표 중 하나 이상. 작중 좌표는 확실성이 확정·추정일 때만 `storyTrackId` + 유한한 `storyOrder`(+ 선택 `storyLabel`)로 존재하고, 미상이면 셋 다 비워 저장한다. 둘 다 없으면 저장하지 않는다(오류 `invalidEvent`, 이유 `noCoordinate`; 그 밖에 `titleEmpty`·`noTimeline`·`storyIncomplete`·`unknownTrack`·`episodeOrder`). `episodeOrder`를 비우면 같은 회차의 최대값 + 1.
+- 정렬: 회차 보기·회차순 = (회차 번호, episodeOrder, eventId). 작중 보기·작중순 = (workspace.json의 트랙 순서, storyOrder, eventId). 빈 좌표는 해당 정렬에서 맨 뒤, 화면에는 ‘미정’(미상은 ‘미상’)으로 보이고 함께 보기 필터(회차 미정만 / 작중 시점 미정만 / 둘 다)로 찾는다.
+- **예전 파일 읽기 규칙(CH2)** · `storyCertainty`가 없는 사건은 `storyTrackId`와 유한한 `storyOrder`가 있으면 `confirmed`, 없으면 `unknown`으로 읽는다. 읽기만으로 파일을 바꾸지 않고, 그 사건을 앱에서 저장할 때 필드가 기록된다. 필드 추가는 schemaVersion을 올리지 않는다(작품 schemaVersion 1 유지, 모르는 필드 보존 규칙으로 하위 호환).
+- 트랙: `workspace.json`의 `storyTracks`(`trackId`, `label`). 이름 바꾸기·추가는 `workspace.json`을 읽을 때의 해시로 교체하며 트랙 ID는 바뀌지 않는다. 트랙 삭제는 아직 없다.
+- 검토(CH1): 회차가 있는 사건만 `reviewedRevisionId`를 가진다. 상태는 그 회차의 최신 커밋과 비교해 계산(`noEpisode` / `noRevision` / `unreviewed` / `reviewed` / `recheck`). 확인은 그 순간 최신 커밋 ID일 때만 기록. 요약(`summaries/<id>/summary.json`)과는 다른 파일이라 서로의 상태를 바꾸지 않는다. 사건의 `episodeId`가 바뀌면 이전 확인 기록을 지운다.
+
 ## 회차 간 추가 계약
 
 - 복선의 현재 status는 표시용 파생값이다. 등장·회수·재개는 불변 transitionId, 공개 회차, 회차 내 순서, 선택적 장면 링크를 지닌 이력으로 보존한다. 7화 등장 → 32화 회수 → 40화 재개라면 25/35/41화 기준 상태는 각각 미회수/회수/미회수다.
