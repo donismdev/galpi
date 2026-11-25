@@ -128,6 +128,14 @@ MyNovel/
 - 트랙: `workspace.json`의 `storyTracks`(`trackId`, `label`). 이름 바꾸기·추가는 `workspace.json`을 읽을 때의 해시로 교체하며 트랙 ID는 바뀌지 않는다. 트랙 삭제는 아직 없다.
 - 검토(CH1): 회차가 있는 사건만 `reviewedRevisionId`를 가진다. 상태는 그 회차의 최신 커밋과 비교해 계산(`noEpisode` / `noRevision` / `unreviewed` / `reviewed` / `recheck`). 확인은 그 순간 최신 커밋 ID일 때만 기록. 요약(`summaries/<id>/summary.json`)과는 다른 파일이라 서로의 상태를 바꾸지 않는다. 사건의 `episodeId`가 바뀌면 이전 확인 기록을 지운다.
 
+### 저장한 보기(링크)·상태 변화·상태 조회 (10회)
+
+- 저장한 보기: `timelines/views/<viewId>.json` = `schemaVersion`(1), `viewId`(불변), `label`, `parentCollectionId?`(링크를 붙인 타임라인), `mode`(`episode`/`story`/`both`), `collectionIds`(비면 모든 타임라인, 아니면 그중 하나에 속한 사건), `episodeRange?` `{from,to}`, `storyRange?` `{trackId,from,to}`, `includeTagIds`, `hideTagIds`, `stateQuery?`, `createdAt`, `requestId`. **조건만 저장**하고 사건 목록은 저장하지 않는다(열 때마다 현재 사건에 다시 적용). `groupBy`는 쓰지 않고 `mode`로 대신한다. 이름·조건 변경은 기대 해시로 교체, 삭제는 조건 파일만 지운다. 보기는 다른 보기를 가리킬 수 없으므로 링크를 따라가도 한 단계만 읽고 순환이 생기지 않는다.
+- 필터 규칙(Rust `views::filter_events` 한 곳): 범위는 양 끝 포함. `episodeRange` = 회차 **표시 번호**, 회차 없는 사건은 범위 밖. `storyRange` = 한 트랙의 정렬 숫자, 확정·추정 위치만(추정은 ‘추정’으로 보임), 미상은 범위 밖. `includeTagIds`는 하나라도 있으면(OR), `hideTagIds`가 붙은 사건은 포함 태그가 있어도 숨김(우선). 필터 해제는 보기만, 타임라인 체크 해제는 소속만, 사건 삭제(`timelines::delete_event`, 기대 해시)는 파일 자체를 바꾼다.
+- 상태 변화: 사건의 `changes` = `[{entityId, propertyKey, value}]`(고정 순서, 비어 있으면 필드 생략). `entityId`는 보통 세계관 카드 ID. 대상·속성 중 하나만 있으면 저장 거절(`changeIncomplete`). 필드가 없는 예전 사건은 변화 없음으로 읽는다(schemaVersion 1 유지).
+- 상태 조회(Rust `views::compute_state`): 대상 하나의 속성별 마지막 값. **독자 기준** = 회차 번호 ≤ N인 사건을 (회차 번호, 회차 안 순서, 사건 ID) 순으로. **작중 기준** = 고른 트랙에서 `certainty = confirmed`이고 정렬 숫자 ≤ X인 사건을 (정렬 숫자, 회차 번호, 회차 안 순서, 사건 ID) 순으로 — 추정·미상은 계산에서 빼고 결과에 ‘추정이라 뺀 사건’으로 알린다(CH2). **둘 다** = 두 조건의 교집합을 사용자가 고른 우선 축 → 다른 축 → 사건 ID 순으로. 값이 하나도 없는 속성은 `value: null`(‘미기록’). 속성 목록은 그 대상의 모든 사건에 나온 속성 이름(가나다순)이다.
+- 고정한 기준(`stateQuery`가 있는 보기, 예: ‘25화 기준’)은 결과가 아니라 조건을 저장하고, 카드 본문(자유 메모)은 결과에 넣지 않는다. 현재 카드 전체는 ‘현재 전체 설정 열기’ 버튼으로만 연다.
+
 ## 회차 간 추가 계약
 
 - 복선의 현재 status는 표시용 파생값이다. 등장·회수·재개는 불변 transitionId, 공개 회차, 회차 내 순서, 선택적 장면 링크를 지닌 이력으로 보존한다. 7화 등장 → 32화 회수 → 40화 재개라면 25/35/41화 기준 상태는 각각 미회수/회수/미회수다.
