@@ -98,6 +98,14 @@ MyNovel/
 - 복원은 작업 원고만 바꾼다(일반 저장). 커밋 안 된 작업 내용이 있으면 먼저 `.galpi/backups/<episodeId>/<시각>-<id>.md`에 사본을 둔다. 다음 커밋이 새 판.
 - 최신 판 조회(07회 재확인 기준): Rust `workspace::history::latest(session, episodeId)` → `RevisionInfo { revisionId, ordinal, contentHash, … }`.
 
+### 회차 요약·다음 화 메모 (07회)
+
+- 경로: `summaries/<episodeId>/summary.md`(요약 본문, 자유 Markdown), `summaries/<episodeId>/summary.json`(검토 기록), `notes/next/<episodeId>.md`(그 회차에서 남긴 ‘다음 화 메모’). 앱은 UTF-8·LF로 쓰고, 읽을 때의 해시를 기대값으로 저장한다(밖에서 바뀌었으면 쓰지 않음).
+- `summary.json`: `schemaVersion`(1), `episodeId`, `reviewedRevisionId`, `reviewedAt`, `reviewedSummaryHash`. 모르는 필드는 보존. 파일이 없으면 ‘확인 기록 없음’.
+- 검토 상태는 파일에 쓰지 않고 계산한다: `unwritten`(요약 비었음) / `noRevision`(커밋 없음) / `unreviewed` / `reviewed`(reviewedRevisionId = 최신 커밋) / `recheck`(더 새 커밋이 있음). 별도 표시: `uncommittedEdits`(작업 원고 ≠ 최신 커밋), `summaryEditedSinceReview`(요약 해시 ≠ 확인 때 해시).
+- 확인은 작가의 명시적 동작(‘이대로 확인’ / ‘수정 후 확인’)으로만 기록되며, 확인하는 순간의 최신 커밋 ID여야 한다(그 사이 새 커밋이 생기면 거절). 원고 저장·외부 편집·충돌 해결 저장·요약 파일 수정은 상태를 바꾸지 않는다(CH1).
+- 다음 화 메모는 N화 폴더 기준으로 저장되고, N+1화(번호가 바로 앞인 회차 기준) 상세에 읽기 전용으로 보인다. 원고·요약에 복사하지 않는다.
+
 ## 회차 간 추가 계약
 
 - 복선의 현재 status는 표시용 파생값이다. 등장·회수·재개는 불변 transitionId, 공개 회차, 회차 내 순서, 선택적 장면 링크를 지닌 이력으로 보존한다. 7화 등장 → 32화 회수 → 40화 재개라면 25/35/41화 기준 상태는 각각 미회수/회수/미회수다.
