@@ -2,7 +2,7 @@
 
 웹소설·장편 작가를 위한 로컬 글쓰기 작업실 (Windows 데스크톱, Tauri 2 + React + Rust).
 
-- **현재 회차 앱 소스: [snapshots/10](snapshots/10)** · 회차별 폴더 규칙은 [SNAPSHOTS.md](SNAPSHOTS.md)
+- **현재 회차 앱 소스: [snapshots/12](snapshots/12)** · 회차별 폴더 규칙은 [SNAPSHOTS.md](SNAPSHOTS.md)
 - 개발 계획: [docs/development/README.md](docs/development/README.md) · 변경분 [PLAN_CHANGES.md](docs/development/PLAN_CHANGES.md)
 - 진행 기록: [docs/development/PROGRESS.md](docs/development/PROGRESS.md)
 - PC 준비: [prepare.md](prepare.md)
@@ -18,6 +18,8 @@
 | [snapshots/07](snapshots/07) | 07 · 회차 요약·다음 화 메모·퇴고 재확인 | 동결 |
 | [snapshots/08](snapshots/08) | 08 · 세계관 카드·범용 템플릿·사용자 태그 | 동결 |
 | [snapshots/09](snapshots/09) | 09 · 사건 입력과 회차·작중 시간·함께 보기 | 동결 |
-| [snapshots/10](snapshots/10) | 10 · 회귀 구간 링크와 그 시점의 능력 | 진행 |
+| [snapshots/10](snapshots/10) | 10 · 회귀 구간 링크와 그 시점의 능력 | 동결 |
+| [snapshots/11](snapshots/11) | 11 · 작품 검색 색인과 외부 수정 반영 | 동결 |
+| [snapshots/12](snapshots/12) | 12 · 빠른 열기와 본문 대목 검색 | 진행 |
 
 각 스냅샷 폴더의 `README.md`에 명령과 구조가 있다. 스냅샷별 실행 파일은 `node tools/build-exe.mjs NN` → `snapshots/NN/exe/galpi-NN-debug.exe` (자세히는 SNAPSHOTS.md).
